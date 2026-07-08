@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Book Appointment - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-calendar-plus" style="color: #818cf8; margin-right: 10px;"></i>Book Appointment</h1>
+    <p class="page-subtitle">Schedule your visit with {{ company.name }}</p>
+</div>
+
+<div class="two-column">
+    <!-- Booking Form -->
+    <div class="glass-card" style="flex: 1;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-calendar-alt" style="color: #818cf8;"></i>
+            Select Date & Time
+        </h2>
+
+        <form method="POST" action="/patient/book-appointment" id="bookingForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="appointmentDate" name="appointment_date" value="">
+            <input type="hidden" id="timeSlot" name="time_slot" value="">
+            <input type="hidden" name="company_id" value="{{ company.id }}">
+
+            <!-- Date Input -->
+            <div class="form-group">
+                <label class="form-label" for="dateInput">Appointment Date <span class="required">*</span></label>
+                <input type="date" id="dateInput" required
+                       min="{{ today }}"
+                       style="color-scheme: dark; font-size: 1rem; padding: 14px 16px;">
+                <div class="date-preview" id="datePreview" style="display: none;">
+                    <i class="fas fa-calendar-check"></i>
+                    <span id="datePreviewText"></span>
+                </div>
+                <div id="dateError" style="color: #f87171; font-size: 0.8rem; margin-top: 6px; display: none;">
+                    <i class="fas fa-exclamation-circle"></i> Please select a valid future date
+                </div>
+            </div>
+
+            <!-- Time Input with AM/PM -->
+            <div class="form-group" id="timeSection" style="display: none;">
+                <label class="form-label">Appointment Time <span class="required">*</span></label>
+                <div class="time-input-row">
+                    <!-- Hour -->
+                    <select id="hourInput" required>
+                        <option value="" disabled selected>Hour</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                    </select>
+                    <span class="time-separator">:</span>
+                    <!-- Minute -->
+                    <select id="minuteInput" required>
+                        <option value="" disabled selected>Min</option>
+                        <option value="00">00</option>
+                        <option value="30">30</option>
+                    </select>
+                    <!-- AM/PM -->
+                    <select id="ampmInput" required>
+                        <option value="" disabled selected>AM/PM</option>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                    </select>
+                </div>
+
+                <!-- Available Slots Hint -->
+                <div class="slots-hint" id="slotsHint" style="display: none;">
+                    <div class="slots-hint-title">
+                        <i class="fas fa-info-circle"></i> Available slots on this date:
+                    </div>
+                    <div class="slots-hint-list" id="slotsHintList"></div>
+                </div>
+
+                <div id="timeError" style="color: #f87171; font-size: 0.8rem; margin-top: 6px; display: none;">
+                    <i class="fas fa-exclamation-circle"></i> <span id="timeErrorText"></span>
+                </div>
+            </div>
+
+            <!-- Selected Summary -->
+            <div class="booking-summary" id="bookingSummary" style="display: none;">
+                <div class="summary-row">
+                    <i class="fas fa-calendar" style="color: #818cf8;"></i>
+                    <span id="summaryDate"></span>
+                </div>
+                <div class="summary-row">
+                    <i class="fas fa-clock" style="color: #818cf8;"></i>
+                    <span id="summaryTime"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="notes">Notes (Optional)</label>
+                <textarea id="notes" name="notes" rows="3" placeholder="Describe your symptoms or reason for visit..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn" disabled>
+                <i class="fas fa-calendar-check"></i> Book Appointment
+            </button>
+        </form>
+    </div>
+
+    <!-- Clinic Info Sidebar -->
+    <div style="flex: 0 0 auto; max-width: 100%;">
+        <div class="glass-card" style="margin-bottom: 16px;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-clinic-medical" style="color: #34d399;"></i>
+                Clinic Information
+            </h3>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                {% if company.logo %}
+                <img src="{{ url_for('static', filename=company.logo) }}" alt="{{ company.name }}"
+                     style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover;">
+                {% else %}
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-clinic-medical" style="color: white;"></i>
+                </div>
+                {% endif %}
+                <div>
+                    <div style="font-weight: 600; font-size: 0.95rem;">{{ company.name }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ company.city }}, {{ company.country }}</div>
+                </div>
+            </div>
+
+            {% if company.phone %}
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem;">
+                <i class="fas fa-phone" style="color: var(--text-muted); width: 16px;"></i>
+                <span>{{ company.phone }}</span>
+            </div>
+            {% endif %}
+
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                {% if company.phone %}
+                <a href="tel:{{ company.phone }}" class="btn btn-call btn-sm" style="flex: 1;">
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/{{ company.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" style="flex: 1;">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if company.admin %}
+        <div class="glass-card">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-user-md" style="color: #fbbf24;"></i>
+                Doctor
+            </h3>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                {% if company.admin.profile_picture %}
+                <img src="{{ url_for('static', filename=company.admin.profile_picture) }}" alt="{{ company.admin.username }}"
+                     style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.1);">
+                {% else %}
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #d97706); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-user-md" style="color: white;"></i>
+                </div>
+                {% endif %}
+                <div>
+                    <div style="font-weight: 600; font-size: 0.95rem;">{{ company.admin.username }}</div>
+                    {% if company.admin.phone %}
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                        <a href="tel:{{ company.admin.phone }}" style="color: inherit; text-decoration: none;">
+                            <i class="fas fa-phone" style="margin-right: 4px;"></i>{{ company.admin.phone }}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let availableSlots = [];
+let selectedDateStr = '';
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// Set min date to today
+document.addEventListener('DOMContentLoaded', () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('dateInput').min = `${yyyy}-${mm}-${dd}`;
+});
+
+// Date input change
+document.getElementById('dateInput').addEventListener('change', function() {
+    const val = this.value;
+    if (!val) return;
+
+    const selectedDate = new Date(val + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+        document.getElementById('dateError').style.display = 'block';
+        document.getElementById('timeSection').style.display = 'none';
+        document.getElementById('appointmentDate').value = '';
+        document.getElementById('datePreview').style.display = 'none';
+        resetTimeInputs();
+        return;
+    }
+
+    document.getElementById('dateError').style.display = 'none';
+    document.getElementById('appointmentDate').value = val;
+    selectedDateStr = val;
+
+    // Show formatted date preview
+    const preview = document.getElementById('datePreview');
+    const previewText = document.getElementById('datePreviewText');
+    const wd = WEEKDAY_NAMES[selectedDate.getDay()];
+    const mn = MONTH_NAMES[selectedDate.getMonth()];
+    previewText.textContent = `${wd}, ${mn} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
+    preview.style.display = 'flex';
+
+    // Show time section and load slots
+    document.getElementById('timeSection').style.display = 'block';
+    loadAvailableSlots(val);
+});
+
+// Time inputs change
+['hourInput', 'minuteInput', 'ampmInput'].forEach(id => {
+    document.getElementById(id).addEventListener('change', validateAndBuildTime);
+});
+
+async function loadAvailableSlots(date) {
+    const hint = document.getElementById('slotsHint');
+    const list = document.getElementById('slotsHintList');
+    const companyId = document.querySelector('input[name="company_id"]').value;
+
+    hint.style.display = 'none';
+    list.innerHTML = '<span class="skeleton" style="display:inline-block;width:120px;height:20px;border-radius:4px;"></span>';
+
+    try {
+        const response = await fetch(`/patient/available-slots?company_id=${companyId}&date=${date}`);
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.available_slots) {
+            availableSlots = data.data.available_slots;
+
+            if (availableSlots.length > 0) {
+                // Show available slots as AM/PM hints
+                list.innerHTML = availableSlots.map(slot => {
+                    return `<span class="slot-hint-tag">${to12Hour(slot)}</span>`;
+                }).join('');
+                hint.style.display = 'block';
+            } else {
+                list.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No slots available</span>';
+                hint.style.display = 'block';
+            }
+        } else {
+            availableSlots = [];
+            list.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No slots available</span>';
+            hint.style.display = 'block';
+        }
+    } catch (error) {
+        availableSlots = [];
+        showToast('Failed to load available slots', 'error');
+    }
+
+    validateAndBuildTime();
+}
+
+function to12Hour(time24) {
+    const parts = time24.split(' - ');
+    if (parts.length !== 2) return time24;
+    function convert(t) {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+    }
+    return `${convert(parts[0])} – ${convert(parts[1])}`;
+}
+
+function to24Hour(hour, minute, ampm) {
+    let h = parseInt(hour, 10);
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${minute}`;
+}
+
+function validateAndBuildTime() {
+    const hour = document.getElementById('hourInput').value;
+    const minute = document.getElementById('minuteInput').value;
+    const ampm = document.getElementById('ampmInput').value;
+    const timeError = document.getElementById('timeError');
+    const timeErrorText = document.getElementById('timeErrorText');
+    const summary = document.getElementById('bookingSummary');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!hour || !minute || !ampm) {
+        timeError.style.display = 'none';
+        summary.style.display = 'none';
+        submitBtn.disabled = true;
+        document.getElementById('timeSlot').value = '';
+        return;
+    }
+
+    const startTime = to24Hour(hour, minute, ampm);
+    // Calculate end time (30 min later)
+    const [h, m] = startTime.split(':').map(Number);
+    const endDate = new Date(2000, 0, 1, h, m + 30);
+    const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+    const slotValue = `${startTime} - ${endTime}`;
+
+    // Validate against available slots
+    if (availableSlots.length > 0 && !availableSlots.includes(slotValue)) {
+        timeErrorText.textContent = `The time ${to12Hour(slotValue)} is not available. Please choose from the available slots shown above.`;
+        timeError.style.display = 'block';
+        document.getElementById('timeSlot').value = '';
+        summary.style.display = 'none';
+        submitBtn.disabled = true;
+        return;
+    }
+
+    timeError.style.display = 'none';
+    document.getElementById('timeSlot').value = slotValue;
+
+    // Show summary
+    const dateVal = document.getElementById('appointmentDate').value;
+    if (dateVal) {
+        const d = new Date(dateVal + 'T00:00:00');
+        document.getElementById('summaryDate').textContent = `${WEEKDAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+    document.getElementById('summaryTime').textContent = to12Hour(slotValue);
+    summary.style.display = 'block';
+
+    submitBtn.disabled = false;
+}
+
+function resetTimeInputs() {
+    document.getElementById('hourInput').value = '';
+    document.getElementById('minuteInput').value = '';
+    document.getElementById('ampmInput').value = '';
+    document.getElementById('timeSlot').value = '';
+    document.getElementById('bookingSummary').style.display = 'none';
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('timeError').style.display = 'none';
+}
+
+// Form validation
+document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    const dateVal = document.getElementById('appointmentDate').value;
+    const timeVal = document.getElementById('timeSlot').value;
+
+    if (!dateVal) {
+        e.preventDefault();
+        showToast('Please select a date', 'warning');
+        return false;
+    }
+    if (!timeVal) {
+        e.preventDefault();
+        showToast('Please select a valid time slot', 'warning');
+        return false;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Booking...';
+});
+</script>
+{% endblock %}

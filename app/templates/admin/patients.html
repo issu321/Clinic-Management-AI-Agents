@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Patients - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-user-injured" style="color: #f87171; margin-right: 10px;"></i>Patients</h1>
+    <p class="page-subtitle">Manage all registered patients</p>
+</div>
+
+<!-- Patients Table -->
+<div class="glass-card-static">
+    {% if patients and patients|length > 0 %}
+    <!-- Desktop Table -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Phone</th>
+                    <th>Emergency Contact</th>
+                    <th>Appointments</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in patients %}
+                <tr>
+                    <td>
+                        <strong>{{ patient.full_name }}</strong>
+                    </td>
+                    <td>{{ patient.age or '-' }}</td>
+                    <td>{{ patient.gender or '-' }}</td>
+                    <td>
+                        {% if patient.user.phone %}
+                        <div style="display: flex; gap: 4px;">
+                            <a href="tel:{{ patient.user.phone }}" class="btn btn-call btn-sm" title="Call">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/{{ patient.user.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if patient.emergency_contact %}
+                        <a href="tel:{{ patient.emergency_contact }}" style="color: #f87171; font-size: 0.85rem; text-decoration: none;">
+                            <i class="fas fa-exclamation-circle"></i> {{ patient.emergency_contact }}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-weight: 600; font-size: 1rem;">{{ patient.appointment_count or 0 }}</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewPatientDetails({{ patient.id }})">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="mobile-table-cards d-md-none">
+        {% for patient in patients %}
+        <div class="mobile-card">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Name</span>
+                <span class="mobile-card-value">{{ patient.full_name }}</span>
+            </div>
+            {% if patient.age %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Age</span>
+                <span class="mobile-card-value">{{ patient.age }}</span>
+            </div>
+            {% endif %}
+            {% if patient.gender %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Gender</span>
+                <span class="mobile-card-value">{{ patient.gender }}</span>
+            </div>
+            {% endif %}
+            {% if patient.user.phone %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Phone</span>
+                <span class="mobile-card-value">{{ patient.user.phone }}</span>
+            </div>
+            <div class="mobile-card-actions" style="padding-top: 8px;">
+                <a href="tel:{{ patient.user.phone }}" class="btn btn-call btn-sm">
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/{{ patient.user.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+            </div>
+            {% endif %}
+            {% if patient.emergency_contact %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Emergency</span>
+                <span class="mobile-card-value">
+                    <a href="tel:{{ patient.emergency_contact }}" style="color: #f87171; text-decoration: none;">
+                        <i class="fas fa-exclamation-circle"></i> {{ patient.emergency_contact }}
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Appointments</span>
+                <span class="mobile-card-value">{{ patient.appointment_count or 0 }}</span>
+            </div>
+            <div class="mobile-card-actions" style="padding-top: 8px;">
+                <button type="button" class="btn btn-info btn-sm btn-block" onclick="viewPatientDetails({{ patient.id }})">
+                    <i class="fas fa-eye"></i> View Full Details
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-users-slash"></i></div>
+        <h3 class="empty-state-title">No Patients Registered</h3>
+        <p class="empty-state-text">Patients will appear here once they register with your clinic.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Patient Details Modal -->
+<div class="modal-overlay" id="patientModal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-user-injured" style="color: #f87171; margin-right: 8px;"></i>Patient Details</h3>
+            <button class="modal-close" onclick="closeModal('patientModal')">&times;</button>
+        </div>
+        <div id="patientModalBody">
+            <div class="skeleton" style="height: 20px; width: 60%; margin-bottom: 12px;"></div>
+            <div class="skeleton" style="height: 14px; width: 80%; margin-bottom: 8px;"></div>
+            <div class="skeleton" style="height: 14px; width: 50%; margin-bottom: 8px;"></div>
+            <div class="skeleton" style="height: 14px; width: 70%; margin-bottom: 8px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function viewPatientDetails(patientId) {
+    openModal('patientModal');
+    const body = document.getElementById('patientModalBody');
+    body.innerHTML = `
+        <div class="skeleton" style="height: 20px; width: 60%; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 14px; width: 80%; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="height: 14px; width: 50%; margin-bottom: 8px;"></div>
+    `;
+
+    try {
+        const response = await fetchWithAuth(`/admin/patient/${patientId}`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+            const p = data.data;
+            const phone = p.user?.phone || '';
+            const emergency = p.emergency_contact || '';
+
+            body.innerHTML = `
+                <div class="profile-card" style="margin-bottom: 20px;">
+                    <div class="profile-avatar-placeholder" style="width: 56px; height: 56px; font-size: 1.3rem;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h3 style="font-size: 1.2rem;">${p.full_name}</h3>
+                        <p style="font-size: 0.85rem;">@${p.user?.username || ''}</p>
+                    </div>
+                </div>
+
+                <div class="glass-card-static" style="margin-bottom: 16px; padding: 16px;">
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-id-card" style="margin-right: 6px;"></i>Personal Information
+                    </h4>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-envelope"></i> Email</span>
+                        <span class="info-value">${p.user?.email || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-phone"></i> Phone</span>
+                        <span class="info-value">
+                            ${phone ? `<a href="tel:${phone}" style="color: #34d399; text-decoration: none;">${phone}</a>` : '-'}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-birthday-cake"></i> Age</span>
+                        <span class="info-value">${p.age || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-venus-mars"></i> Gender</span>
+                        <span class="info-value">${p.gender || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-map-marker-alt"></i> Address</span>
+                        <span class="info-value">${p.address || '-'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-exclamation-triangle" style="color: #f87171;"></i> Emergency</span>
+                        <span class="info-value">
+                            ${emergency ? `<a href="tel:${emergency}" style="color: #f87171; text-decoration: none;">${emergency}</a>` : '-'}
+                        </span>
+                    </div>
+                </div>
+
+                ${p.medical_history ? `
+                <div class="glass-card-static" style="margin-bottom: 16px; padding: 16px;">
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-file-medical" style="margin-right: 6px;"></i>Medical History
+                    </h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">${p.medical_history}</p>
+                </div>
+                ` : ''}
+
+                <div class="glass-card-static" style="padding: 16px;">
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i>Appointment History
+                    </h4>
+                    ${p.appointments && p.appointments.length > 0 ? `
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${p.appointments.map(a => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                    <div>
+                                        <div style="font-weight: 500; font-size: 0.9rem;">${a.appointment_date} ${a.time_slot}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">${a.notes || 'No notes'}</div>
+                                    </div>
+                                    <span class="badge badge-${a.status}">${a.status}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p style="color: var(--text-muted); font-size: 0.85rem;">No appointments yet.</p>'}
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    ${phone ? `
+                    <a href="tel:${phone}" class="btn btn-call btn-block">
+                        <i class="fas fa-phone"></i> Call Patient
+                    </a>
+                    <a href="https://wa.me/${phone}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-block">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            body.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Failed to load patient details.</p>';
+        }
+    } catch (error) {
+        body.innerHTML = '<p style="color: var(--danger); text-align: center;">Error loading details.</p>';
+    }
+}
+</script>
+{% endblock %}

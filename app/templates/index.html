@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{{ developer.software_name }} - {{ developer.tagline }}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-particles" id="heroParticles"></div>
+
+    <div class="hero-content fade-in">
+        <div class="hero-badge">
+            <i class="fas fa-stethoscope"></i>
+            <span>Trusted by Doctors Worldwide</span>
+        </div>
+
+        <h1 class="hero-title">{{ developer.software_name }}</h1>
+        <p class="hero-subtitle">{{ developer.tagline }}</p>
+
+        <div class="hero-buttons">
+            {% if current_user.is_authenticated %}
+                {% if current_user.role == 'super_admin' %}
+                    <a href="/super-admin/dashboard" target="_self" class="btn btn-primary btn-lg">
+                        <i class="fas fa-chart-line"></i> Super Admin Dashboard
+                    </a>
+                {% elif current_user.role == 'admin' %}
+                    <a href="/admin/dashboard" target="_self" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-md"></i> Doctor Dashboard
+                    </a>
+                    <a href="/admin/appointments" target="_self" class="btn btn-outline btn-lg">
+                        <i class="fas fa-calendar-check"></i> Manage Appointments
+                    </a>
+                {% elif current_user.role == 'patient' %}
+                    <a href="/patient/dashboard" target="_self" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home"></i> My Dashboard
+                    </a>
+                    <a href="/patient/book-appointment" target="_self" class="btn btn-outline btn-lg">
+                        <i class="fas fa-calendar-plus"></i> Book Appointment
+                    </a>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('auth.register_page', role='admin') }}" target="_self" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-md"></i> Get Started as Doctor
+                </a>
+                <a href="{{ url_for('auth.login_page') }}" target="_self" class="btn btn-outline btn-lg">
+                    <i class="fas fa-calendar-check"></i> Book Appointment
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="scroll-indicator" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); opacity: 0.5; animation: bounce 2s infinite;">
+        <i class="fas fa-chevron-down" style="font-size: 1.5rem;"></i>
+    </div>
+</section>
+
+<style>
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+    40% { transform: translateX(-50%) translateY(-10px); }
+    60% { transform: translateX(-50%) translateY(-5px); }
+}
+</style>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="features-grid">
+        <!-- For Doctors -->
+        <div class="feature-card slide-up">
+            <div class="feature-icon doctor">
+                <i class="fas fa-user-md"></i>
+            </div>
+            <h3 class="feature-title">For Doctors</h3>
+            <p class="feature-desc">
+                Manage your clinic effortlessly. Track appointments, patient records, 
+                and financials all in one place. Built for modern healthcare professionals.
+            </p>
+        </div>
+
+        <!-- For Patients -->
+        <div class="feature-card slide-up" style="animation-delay: 0.1s;">
+            <div class="feature-icon patient">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <h3 class="feature-title">For Patients</h3>
+            <p class="feature-desc">
+                Book appointments with your preferred doctors, view your medical history, 
+                and stay connected with your healthcare provider anytime, anywhere.
+            </p>
+        </div>
+
+        <!-- For Admins -->
+        <div class="feature-card slide-up" style="animation-delay: 0.2s;">
+            <div class="feature-icon admin">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="feature-title">For Admins</h3>
+            <p class="feature-desc">
+                Complete system oversight with real-time analytics, user management, 
+                and secure access control. Monitor all clinics from a single dashboard.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Stats Section -->
+<section class="glass-card-static" style="max-width: 800px; margin: 0 auto 40px; text-align: center;">
+    <h2 style="font-size: 1.3rem; margin-bottom: 20px; font-weight: 700;">
+        <i class="fas fa-globe" style="color: #818cf8; margin-right: 8px;"></i>
+        Global Healthcare Management
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+        <div style="padding: 16px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #818cf8;">100+</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Countries Supported</div>
+        </div>
+        <div style="padding: 16px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #34d399;">50+</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Currencies</div>
+        </div>
+        <div style="padding: 16px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #fbbf24;">24/7</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Availability</div>
+        </div>
+        <div style="padding: 16px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #f87171;">100%</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Mobile Ready</div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+{% if not current_user.is_authenticated %}
+<section style="text-align: center; padding: 40px 20px;">
+    <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 12px;">Ready to Get Started?</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        Join thousands of healthcare professionals who trust ClinicPro for their practice management needs.
+    </p>
+    <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <a href="{{ url_for('auth.register_page', role='admin') }}" target="_self" class="btn btn-primary btn-lg" style="max-width: 300px; width: 100%;">
+            <i class="fas fa-user-md"></i> Register as Doctor
+        </a>
+        <a href="{{ url_for('auth.register_page', role='patient') }}" target="_self" class="btn btn-outline btn-lg" style="max-width: 300px; width: 100%;">
+            <i class="fas fa-user"></i> Register as Patient
+        </a>
+    </div>
+</section>
+{% else %}
+<section style="text-align: center; padding: 40px 20px;">
+    <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 12px;">Welcome Back, {{ current_user.username }}!</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        {% if current_user.role == 'admin' %}
+            Manage your clinic and appointments from your dashboard.
+        {% elif current_user.role == 'patient' %}
+            Book appointments and manage your health records.
+        {% elif current_user.role == 'super_admin' %}
+            Monitor the entire system from your super admin dashboard.
+        {% endif %}
+    </p>
+    <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        {% if current_user.role == 'super_admin' %}
+            <a href="/super-admin/dashboard" target="_self" class="btn btn-primary btn-lg" style="max-width: 300px; width: 100%;">
+                <i class="fas fa-chart-line"></i> Go to Dashboard
+            </a>
+        {% elif current_user.role == 'admin' %}
+            <a href="/admin/dashboard" target="_self" class="btn btn-primary btn-lg" style="max-width: 300px; width: 100%;">
+                <i class="fas fa-user-md"></i> Doctor Dashboard
+            </a>
+            <a href="/admin/appointments" target="_self" class="btn btn-outline btn-lg" style="max-width: 300px; width: 100%;">
+                <i class="fas fa-calendar-check"></i> Appointments
+            </a>
+        {% elif current_user.role == 'patient' %}
+            <a href="/patient/dashboard" target="_self" class="btn btn-primary btn-lg" style="max-width: 300px; width: 100%;">
+                <i class="fas fa-home"></i> My Dashboard
+            </a>
+            <a href="/patient/book-appointment" target="_self" class="btn btn-outline btn-lg" style="max-width: 300px; width: 100%;">
+                <i class="fas fa-calendar-plus"></i> Book Appointment
+            </a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

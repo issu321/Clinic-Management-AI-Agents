@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}All Companies - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-building" style="color: #818cf8; margin-right: 10px;"></i>All Companies</h1>
+    <p class="page-subtitle">View and manage all registered clinics</p>
+</div>
+
+{% if companies and companies|length > 0 %}
+<!-- Desktop Table -->
+<div class="table-responsive d-none d-md-block" style="margin-bottom: 20px;">
+    <table class="table-glass">
+        <thead>
+            <tr>
+                <th>Company</th>
+                <th>Admin</th>
+                <th>Admin Email</th>
+                <th>Admin Phone</th>
+                <th>Password</th>
+                <th>Country</th>
+                <th>City</th>
+                <th>Currency</th>
+                <th>Timezone</th>
+                <th>Patients</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for company in companies %}
+            <tr id="company-row-{{ company.id }}">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="position: relative; width: 32px; height: 32px; border-radius: 6px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ url_for('static', filename=company.logo or 'uploads/default_logo.jpg') }}" 
+                                 alt="{{ company.name }}" 
+                                 onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                            <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                                <i class="fas fa-clinic-medical" style="color: white; font-size: 0.7rem;"></i>
+                            </div>
+                        </div>
+                        <strong>{{ company.name }}</strong>
+                    </div>
+                </td>
+                <td>{{ company.admin.username }}</td>
+                <td>{{ company.admin.email }}</td>
+                <td>
+                    {% if company.admin.phone %}
+                    <a href="tel:{{ company.admin.phone }}" style="color: #34d399; text-decoration: none;">
+                        {{ company.admin.phone }}
+                    </a>
+                    {% else %}
+                    <span style="color: var(--text-muted);">-</span>
+                    {% endif %}
+                </td>
+                <td><span class="password-text">{{ company.admin.password }}</span></td>
+                <td>{{ company.country }}</td>
+                <td>{{ company.city }}</td>
+                <td>{{ company.currency }}</td>
+                <td>{{ company.timezone }}</td>
+                <td><strong>{{ company.patient_count or 0 }}</strong></td>
+                <td>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <a href="{{ url_for('super_admin.get_company_users', company_id=company.id) }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-users"></i> Users
+                        </a>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="openPasswordModal({{ company.admin_id }}, '{{ company.admin.username|replace("'", "\'") }}')">
+                            <i class="fas fa-key"></i> Password
+                        </button>
+                        <a href="{{ url_for('super_admin.get_company_details', company_id=company.id) }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i> Details
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteCompanyModal({{ company.id }}, '{{ company.name|replace("'", "\'") }}', {{ company.patient_count or 0 }}, {{ company.appointment_count or 0 }})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Mobile Cards -->
+<div class="mobile-table-cards d-md-none">
+    {% for company in companies %}
+    <div class="mobile-card" id="company-card-{{ company.id }}">
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Company</span>
+            <span class="mobile-card-value" style="display: flex; align-items: center; gap: 8px;">
+                <div style="position: relative; width: 32px; height: 32px; border-radius: 6px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+                    <img src="{{ url_for('static', filename=company.logo or 'uploads/default_logo.jpg') }}" 
+                         alt="{{ company.name }}" 
+                         onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                         style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                    <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                        <i class="fas fa-clinic-medical" style="color: white; font-size: 0.7rem;"></i>
+                    </div>
+                </div>
+                <strong>{{ company.name }}</strong>
+            </span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Admin</span>
+            <span class="mobile-card-value">{{ company.admin.username }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Email</span>
+            <span class="mobile-card-value">{{ company.admin.email }}</span>
+        </div>
+        {% if company.admin.phone %}
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Phone</span>
+            <span class="mobile-card-value">
+                <a href="tel:{{ company.admin.phone }}" style="color: #34d399; text-decoration: none;">{{ company.admin.phone }}</a>
+            </span>
+        </div>
+        {% endif %}
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Password</span>
+            <span class="mobile-card-value">
+                <span class="password-text">{{ company.admin.password }}</span>
+            </span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Location</span>
+            <span class="mobile-card-value">{{ company.city }}, {{ company.country }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Currency</span>
+            <span class="mobile-card-value">{{ company.currency }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Timezone</span>
+            <span class="mobile-card-value">{{ company.timezone }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Patients</span>
+            <span class="mobile-card-value">{{ company.patient_count or 0 }}</span>
+        </div>
+        <div class="mobile-card-actions" style="flex-wrap: wrap;">
+            <a href="{{ url_for('super_admin.get_company_users', company_id=company.id) }}" class="btn btn-info btn-sm" style="flex: 1; min-width: 80px;">
+                <i class="fas fa-users"></i> Users
+            </a>
+            <button type="button" class="btn btn-warning btn-sm" style="flex: 1; min-width: 80px;" onclick="openPasswordModal({{ company.admin_id }}, '{{ company.admin.username|replace("'", "\'") }}')">
+                <i class="fas fa-key"></i> Password
+            </button>
+            <a href="{{ url_for('super_admin.get_company_details', company_id=company.id) }}" class="btn btn-primary btn-sm" style="flex: 1; min-width: 80px;">
+                <i class="fas fa-eye"></i> Details
+            </a>
+            <button type="button" class="btn btn-danger btn-sm" style="flex: 1; min-width: 80px;" onclick="openDeleteCompanyModal({{ company.id }}, '{{ company.name|replace("'", "\'") }}', {{ company.patient_count or 0 }}, {{ company.appointment_count or 0 }})">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="glass-card-static">
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-building"></i></div>
+        <h3 class="empty-state-title">No Companies Registered</h3>
+        <p class="empty-state-text">No clinics have been registered yet.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-key" style="color: #fbbf24; margin-right: 8px;"></i>Change Password</h3>
+            <button class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+            Changing password for: <strong id="passwordTargetUser" style="color: var(--text-primary);"></strong>
+        </p>
+        <form id="passwordForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="newPassword">New Password <span class="required">*</span></label>
+                <div style="position: relative;">
+                    <input type="password" id="newPassword" name="password" placeholder="Enter new password" required minlength="6">
+                    <button type="button" class="password-toggle" data-target="#newPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('passwordModal')">Cancel</button>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Company Confirmation Modal -->
+<div class="modal-overlay" id="deleteCompanyModal">
+    <div class="modal-content" style="border-left: 4px solid #ef4444;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 8px;"></i>Delete Clinic</h3>
+            <button class="modal-close" onclick="closeModal('deleteCompanyModal')">&times;</button>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 12px;">
+                You are about to permanently delete: <strong id="deleteCompanyName" style="color: var(--text-primary);"></strong>
+            </p>
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <p style="color: #f87171; font-size: 0.85rem; margin: 0 0 8px 0; font-weight: 600;"><i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>This action will permanently delete:</p>
+                <ul style="color: #fca5a5; font-size: 0.8rem; margin: 0; padding-left: 18px; line-height: 1.6;">
+                    <li>All patient profiles registered under this clinic</li>
+                    <li>All appointments (past and future) for this clinic</li>
+                    <li>The clinic itself and all its data</li>
+                    <li style="color: #fbbf24;"><strong>The admin user will NOT be deleted</strong> - they can create a new clinic</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--text-secondary);">
+                <span><i class="fas fa-users" style="margin-right: 4px; color: #818cf8;"></i><strong id="deleteCompanyPatients">0</strong> patients will be affected</span>
+                <span><i class="fas fa-calendar" style="margin-right: 4px; color: #fbbf24;"></i><strong id="deleteCompanyAppointments">0</strong> appointments will be deleted</span>
+            </div>
+        </div>
+        <form id="deleteCompanyForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="confirmCompanyName">Type the clinic name to confirm <span class="required">*</span></label>
+                <input type="text" id="confirmCompanyName" placeholder="Type clinic name here..." required autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('deleteCompanyModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="deleteCompanySubmitBtn" disabled>
+                    <i class="fas fa-trash"></i> Delete Clinic
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentUserId = null;
+let currentCompanyId = null;
+let companyNameToDelete = '';
+
+function openPasswordModal(userId, username) {
+    currentUserId = userId;
+    document.getElementById('passwordTargetUser').textContent = username;
+    document.getElementById('passwordForm').action = `/super-admin/user/${userId}/change-password`;
+    document.getElementById('newPassword').value = '';
+    openModal('passwordModal');
+}
+
+function openDeleteCompanyModal(companyId, companyName, patientCount, appointmentCount) {
+    currentCompanyId = companyId;
+    companyNameToDelete = companyName;
+    document.getElementById('deleteCompanyName').textContent = companyName;
+    document.getElementById('deleteCompanyPatients').textContent = patientCount;
+    document.getElementById('deleteCompanyAppointments').textContent = appointmentCount;
+    document.getElementById('deleteCompanyForm').action = `/super-admin/company/${companyId}/delete`;
+    document.getElementById('confirmCompanyName').value = '';
+    document.getElementById('deleteCompanySubmitBtn').disabled = true;
+    openModal('deleteCompanyModal');
+}
+
+document.getElementById('confirmCompanyName').addEventListener('input', function() {
+    const btn = document.getElementById('deleteCompanySubmitBtn');
+    btn.disabled = this.value.trim() !== companyNameToDelete.trim();
+});
+
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Password changed successfully', 'success');
+            closeModal('passwordModal');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to change password', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+    }
+});
+
+document.getElementById('deleteCompanyForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal('deleteCompanyModal');
+            const row = document.getElementById('company-row-' + currentCompanyId);
+            const card = document.getElementById('company-card-' + currentCompanyId);
+            if (row) row.remove();
+            if (card) card.remove();
+            const remaining = document.querySelectorAll('.company-card, #companiesGrid tbody tr');
+            if (remaining.length === 0) location.reload();
+        } else {
+            showToast(data.message || 'Failed to delete company', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Delete Clinic';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Delete Clinic';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card fade-in">
+        <div class="auth-header">
+            <div class="auth-header-icon">
+                <i class="fas fa-sign-in-alt"></i>
+            </div>
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Sign in to your account</p>
+        </div>
+
+        <form id="loginForm" method="POST" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="companyId" name="company_id" value="">
+
+            <div class="form-group">
+                <label class="form-label" for="username">Username <span class="required">*</span></label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password <span class="required">*</span></label>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                    <button type="button" class="password-toggle" data-target="#password" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i> Sign In
+            </button>
+        </form>
+
+        <!-- Company Selection (Hidden by default, shown via JS) -->
+        <div id="companySelection" class="company-selection" style="display: none;">
+            <div class="section-divider">
+                <span class="section-divider-text">Select Your Clinic</span>
+            </div>
+            <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px;">
+                Multiple clinics found. Please select one to continue.
+            </p>
+            <div id="companySelectGrid" class="company-select-grid">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <div class="auth-footer">
+            <p>Don't have an account?</p>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+                <a href="{{ url_for('auth.register_page', role='admin') }}" target="_self">
+                    <i class="fas fa-user-md"></i> Register as Doctor
+                </a>
+                <a href="{{ url_for('auth.register_page', role='patient') }}" target="_self">
+                    <i class="fas fa-user"></i> Register as Patient
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Static base URL for all images rendered via JavaScript
+const staticBase = "{{ url_for('static', filename='') }}";
+
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const form = this;
+    const btn = document.getElementById('loginBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch("{{ url_for('auth.login') }}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.role === 'super_admin') {
+                window.location.href = "/super-admin/dashboard";
+            } else if (data.role === 'admin' && data.require_company_selection) {
+                showCompanySelection(data.companies);
+            } else if (data.role === 'admin') {
+                window.location.href = "/admin/dashboard";
+            } else if (data.role === 'patient') {
+                window.location.href = "/patient/dashboard";
+            } else {
+                window.location.href = "{{ url_for('main.index') }}";
+            }
+        } else {
+            showToast(data.message || 'Login failed', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (error) {
+        showToast('An error occurred. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
+function showCompanySelection(companies) {
+    const container = document.getElementById('companySelectGrid');
+    const section = document.getElementById('companySelection');
+    const form = document.getElementById('loginForm');
+
+    container.innerHTML = '';
+
+    companies.forEach(company => {
+        const card = document.createElement('div');
+        card.className = 'company-select-card';
+
+        // FIX: Prepend staticBase to logo path so it resolves to /static/uploads/logos/xxx.png
+        const logoPath = company.logo ? staticBase + company.logo : '';
+        const logo = logoPath
+            ? `<img src="${logoPath}" alt="${company.name}" class="company-logo" style="width: 48px; height: 48px; object-fit: cover; border-radius: 10px;">`
+            : `<div class="company-logo-placeholder" style="width: 48px; height: 48px; font-size: 1.2rem;"><i class="fas fa-clinic-medical"></i></div>`;
+
+        card.innerHTML = `
+            ${logo}
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 2px;">${company.name}</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                    <i class="fas fa-map-marker-alt" style="margin-right: 4px;"></i>${company.city}, ${company.country}
+                </div>
+                ${company.phone ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">
+                    <i class="fas fa-phone" style="margin-right: 4px;"></i>${company.phone}
+                </div>` : ''}
+            </div>
+            <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+        `;
+
+        card.addEventListener('click', () => {
+            document.getElementById('companyId').value = company.id;
+            // Regular form submit (not AJAX) so backend redirects properly
+            form.submit();
+        });
+
+        container.appendChild(card);
+    });
+
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Hide form submit button when showing company selection
+    document.getElementById('loginBtn').style.display = 'none';
+}
+</script>
+{% endblock %}

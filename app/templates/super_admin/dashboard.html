@@ -1,0 +1,781 @@
+{% extends "base.html" %}
+
+{% block title %}Super Admin Dashboard - {{ developer.software_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Chart Container Styles */
+.chart-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.chart-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.chart-canvas-container {
+    position: relative;
+    height: 260px;
+    width: 100%;
+}
+.chart-canvas-container-sm {
+    position: relative;
+    height: 200px;
+    width: 100%;
+}
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+.charts-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+@media (max-width: 768px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid-2 { grid-template-columns: 1fr; }
+    .chart-canvas-container { height: 220px; }
+    .chart-canvas-container-sm { height: 180px; }
+}
+.chart-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-shield-alt" style="color: #fbbf24; margin-right: 10px;"></i>
+        Super Admin Dashboard
+    </h1>
+    <p class="page-subtitle">System-wide monitoring and management</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="fas fa-building"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ data.stats.total_companies }}</div>
+            <div class="stat-label">Total Companies</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <i class="fas fa-user-md"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ data.stats.total_admins }}</div>
+            <div class="stat-label">Total Admins</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ data.stats.total_patients }}</div>
+            <div class="stat-label">Total Patients</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon yellow">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-value">{{ data.stats.total_appointments }}</div>
+            <div class="stat-label">Total Appointments</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1: User Growth + Role Distribution -->
+<div class="charts-grid">
+    <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-chart-line" style="color: #818cf8;"></i> User Growth Over Time</div>
+        <div class="chart-canvas-container">
+            <canvas id="userGrowthChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-chart-pie" style="color: #fbbf24;"></i> Role Distribution</div>
+        <div class="chart-canvas-container-sm">
+            <canvas id="roleDistributionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2: Appointments + Payments -->
+<div class="charts-grid">
+    <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-chart-bar" style="color: #34d399;"></i> Appointments by Status</div>
+        <div class="chart-canvas-container-sm">
+            <canvas id="appointmentStatusChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-money-bill-wave" style="color: #a78bfa;"></i> Payment Status</div>
+        <div class="chart-canvas-container-sm">
+            <canvas id="paymentStatusChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3: Weekly Appointments -->
+<div class="chart-card" style="margin-top: 20px;">
+    <div class="chart-title"><i class="fas fa-calendar-week" style="color: #f472b6;"></i> Weekly Appointments (Last 7 Days)</div>
+    <div class="chart-canvas-container">
+        <canvas id="weeklyAppointmentsChart"></canvas>
+    </div>
+</div>
+
+<!-- Charts Row 4: Companies by Country + Currency -->
+<div class="charts-grid">
+    <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-globe" style="color: #60a5fa;"></i> Companies by Country</div>
+        <div class="chart-canvas-container">
+            <canvas id="companiesByCountryChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-coins" style="color: #fbbf24;"></i> Companies by Currency</div>
+        <div class="chart-canvas-container">
+            <canvas id="companiesByCurrencyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Companies -->
+<div class="glass-card-static" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="font-size: 1.2rem; font-weight: 700;">
+            <i class="fas fa-building" style="color: #818cf8; margin-right: 8px;"></i>
+            Recent Companies
+        </h2>
+        <a href="{{ url_for('super_admin.get_all_companies') }}" class="btn btn-sm btn-outline">
+            <i class="fas fa-arrow-right"></i> View All
+        </a>
+    </div>
+
+    {% if data.recent_companies and data.recent_companies|length > 0 %}
+    <!-- Desktop Table -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Admin</th>
+                    <th>Admin Email</th>
+                    <th>Admin Phone</th>
+                    <th>Password</th>
+                    <th>Country</th>
+                    <th>City</th>
+                    <th>Currency</th>
+                    <th>Timezone</th>
+                    <th>Patients</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for company in data.recent_companies %}
+                <tr id="company-row-{{ company.id }}">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="position: relative; width: 32px; height: 32px; border-radius: 6px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+                                <img src="{{ url_for('static', filename=company.logo or 'uploads/default_logo.jpg') }}" 
+                                     alt="{{ company.name }}" 
+                                     onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                                     style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                                <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                                    <i class="fas fa-clinic-medical" style="color: white; font-size: 0.7rem;"></i>
+                                </div>
+                            </div>
+                            <strong>{{ company.name }}</strong>
+                        </div>
+                    </td>
+                    <td>{{ company.admin.username }}</td>
+                    <td>{{ company.admin.email }}</td>
+                    <td>
+                        {% if company.admin.phone %}
+                        <a href="tel:{{ company.admin.phone }}" style="color: #34d399; text-decoration: none;">{{ company.admin.phone }}</a>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="password-text">{{ company.admin.password }}</span></td>
+                    <td>{{ company.country }}</td>
+                    <td>{{ company.city }}</td>
+                    <td>{{ company.currency }}</td>
+                    <td>{{ company.timezone }}</td>
+                    <td><span style="font-weight: 600;">{{ company.patient_count or 0 }}</span></td>
+                    <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <a href="{{ url_for('super_admin.get_company_users', company_id=company.id) }}" class="btn btn-info btn-sm">
+                                <i class="fas fa-users"></i> Users
+                            </a>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="openPasswordModal({{ company.admin_id }}, '{{ company.admin.username|replace("'", "\'") }}')">
+                                <i class="fas fa-key"></i> Password
+                            </button>
+                            <a href="{{ url_for('super_admin.get_company_details', company_id=company.id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> Details
+                            </a>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteCompanyModal({{ company.id }}, '{{ company.name|replace("'", "\'") }}', {{ company.patient_count or 0 }}, 0)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="mobile-table-cards d-md-none">
+        {% for company in data.recent_companies %}
+        <div class="mobile-card" id="company-card-{{ company.id }}">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Company</span>
+                <span class="mobile-card-value" style="display: flex; align-items: center; gap: 8px;">
+                    <div style="position: relative; width: 32px; height: 32px; border-radius: 6px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+                        <img src="{{ url_for('static', filename=company.logo or 'uploads/default_logo.jpg') }}" 
+                             alt="{{ company.name }}" 
+                             onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                             style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                        <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                            <i class="fas fa-clinic-medical" style="color: white; font-size: 0.7rem;"></i>
+                        </div>
+                    </div>
+                    <strong>{{ company.name }}</strong>
+                </span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Admin</span>
+                <span class="mobile-card-value">{{ company.admin.username }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Email</span>
+                <span class="mobile-card-value">{{ company.admin.email }}</span>
+            </div>
+            {% if company.admin.phone %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Phone</span>
+                <span class="mobile-card-value">
+                    <a href="tel:{{ company.admin.phone }}" style="color: #34d399; text-decoration: none;">{{ company.admin.phone }}</a>
+                </span>
+            </div>
+            {% endif %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Password</span>
+                <span class="mobile-card-value">
+                    <span class="password-text">{{ company.admin.password }}</span>
+                </span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Location</span>
+                <span class="mobile-card-value">{{ company.city }}, {{ company.country }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Currency</span>
+                <span class="mobile-card-value">{{ company.currency }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Timezone</span>
+                <span class="mobile-card-value">{{ company.timezone }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Patients</span>
+                <span class="mobile-card-value">{{ company.patient_count or 0 }}</span>
+            </div>
+            <div class="mobile-card-actions" style="flex-wrap: wrap;">
+                <a href="{{ url_for('super_admin.get_company_users', company_id=company.id) }}" class="btn btn-info btn-sm" style="flex: 1; min-width: 80px;">
+                    <i class="fas fa-users"></i> Users
+                </a>
+                <button type="button" class="btn btn-warning btn-sm" style="flex: 1; min-width: 80px;" onclick="openPasswordModal({{ company.admin_id }}, '{{ company.admin.username|replace("'", "\'") }}')">
+                    <i class="fas fa-key"></i> Password
+                </button>
+                <a href="{{ url_for('super_admin.get_company_details', company_id=company.id) }}" class="btn btn-primary btn-sm" style="flex: 1; min-width: 80px;">
+                    <i class="fas fa-eye"></i> Details
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" style="flex: 1; min-width: 80px;" onclick="openDeleteCompanyModal({{ company.id }}, '{{ company.name|replace("'", "\'") }}', {{ company.patient_count or 0 }}, 0)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-building"></i></div>
+        <h3 class="empty-state-title">No Companies Yet</h3>
+        <p class="empty-state-text">Companies will appear here once doctors register their clinics.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-key" style="color: #fbbf24; margin-right: 8px;"></i>Change Password</h3>
+            <button class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+            Changing password for: <strong id="passwordTargetUser" style="color: var(--text-primary);"></strong>
+        </p>
+        <form id="passwordForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="newPassword">New Password <span class="required">*</span></label>
+                <div style="position: relative;">
+                    <input type="password" id="newPassword" name="password" placeholder="Enter new password" required minlength="6">
+                    <button type="button" class="password-toggle" data-target="#newPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('passwordModal')">Cancel</button>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Company Confirmation Modal -->
+<div class="modal-overlay" id="deleteCompanyModal">
+    <div class="modal-content" style="border-left: 4px solid #ef4444;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 8px;"></i>Delete Clinic</h3>
+            <button class="modal-close" onclick="closeModal('deleteCompanyModal')">&times;</button>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 12px;">
+                You are about to permanently delete: <strong id="deleteCompanyName" style="color: var(--text-primary);"></strong>
+            </p>
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <p style="color: #f87171; font-size: 0.85rem; margin: 0 0 8px 0; font-weight: 600;"><i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>This action will permanently delete:</p>
+                <ul style="color: #fca5a5; font-size: 0.8rem; margin: 0; padding-left: 18px; line-height: 1.6;">
+                    <li>All patient profiles registered under this clinic</li>
+                    <li>All appointments (past and future) for this clinic</li>
+                    <li>The clinic itself and all its data</li>
+                    <li style="color: #fbbf24;"><strong>The admin user will NOT be deleted</strong> - they can create a new clinic</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--text-secondary);">
+                <span><i class="fas fa-users" style="margin-right: 4px; color: #818cf8;"></i><strong id="deleteCompanyPatients">0</strong> patients will be affected</span>
+                <span><i class="fas fa-calendar" style="margin-right: 4px; color: #fbbf24;"></i><strong id="deleteCompanyAppointments">0</strong> appointments will be deleted</span>
+            </div>
+        </div>
+        <form id="deleteCompanyForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="confirmCompanyName">Type the clinic name to confirm <span class="required">*</span></label>
+                <input type="text" id="confirmCompanyName" placeholder="Type clinic name here..." required autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('deleteCompanyModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="deleteCompanySubmitBtn" disabled>
+                    <i class="fas fa-trash"></i> Delete Clinic
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+let currentUserId = null;
+let currentCompanyId = null;
+let companyNameToDelete = '';
+
+// Common Chart.js defaults for dark theme
+Chart.defaults.color = 'rgba(255,255,255,0.6)';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
+Chart.defaults.font.family = "'Inter', 'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+
+const chartColors = {
+    primary: '#818cf8',
+    success: '#34d399',
+    warning: '#fbbf24',
+    danger: '#f87171',
+    info: '#60a5fa',
+    purple: '#a78bfa',
+    pink: '#f472b6',
+    teal: '#2dd4bf',
+    orange: '#fb923c'
+};
+
+// Fetch chart data from API
+async function loadCharts() {
+    try {
+        const response = await fetchWithAuth('/super-admin/charts-data');
+        const result = await response.json();
+        if (!result.success || !result.data) return;
+        const data = result.data;
+
+        // 1. User Growth Chart (Line)
+        new Chart(document.getElementById('userGrowthChart'), {
+            type: 'line',
+            data: {
+                labels: data.user_growth.labels,
+                datasets: [
+                    {
+                        label: 'Admins',
+                        data: data.user_growth.datasets.admins,
+                        borderColor: chartColors.warning,
+                        backgroundColor: 'rgba(251,191,36,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Patients',
+                        data: data.user_growth.datasets.patients,
+                        borderColor: chartColors.success,
+                        backgroundColor: 'rgba(52,211,153,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Super Admins',
+                        data: data.user_growth.datasets.super_admins,
+                        borderColor: chartColors.primary,
+                        backgroundColor: 'rgba(129,140,248,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.9)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255,255,255,0.8)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Role Distribution (Doughnut)
+        new Chart(document.getElementById('roleDistributionChart'), {
+            type: 'doughnut',
+            data: {
+                labels: data.role_distribution.labels,
+                datasets: [{
+                    data: data.role_distribution.data,
+                    backgroundColor: [chartColors.primary, chartColors.warning, chartColors.success],
+                    borderColor: 'rgba(15,23,42,0.8)',
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'right', labels: { usePointStyle: true, padding: 12 } }
+                }
+            }
+        });
+
+        // 3. Appointment Status (Bar)
+        new Chart(document.getElementById('appointmentStatusChart'), {
+            type: 'bar',
+            data: {
+                labels: data.appointment_status.labels,
+                datasets: [{
+                    label: 'Appointments',
+                    data: data.appointment_status.data,
+                    backgroundColor: data.appointment_status.colors,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 4. Payment Status (Doughnut)
+        new Chart(document.getElementById('paymentStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: data.payment_status.labels,
+                datasets: [{
+                    data: data.payment_status.data,
+                    backgroundColor: [chartColors.success, chartColors.warning],
+                    borderColor: 'rgba(15,23,42,0.8)',
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'right', labels: { usePointStyle: true, padding: 12 } }
+                }
+            }
+        });
+
+        // 5. Weekly Appointments (Line with area)
+        new Chart(document.getElementById('weeklyAppointmentsChart'), {
+            type: 'line',
+            data: {
+                labels: data.weekly_appointments.labels,
+                datasets: [{
+                    label: 'Appointments',
+                    data: data.weekly_appointments.data,
+                    borderColor: chartColors.pink,
+                    backgroundColor: 'rgba(244,114,182,0.15)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: chartColors.pink,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.9)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255,255,255,0.8)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 6. Companies by Country (Horizontal Bar)
+        const countryColors = [
+            chartColors.primary, chartColors.success, chartColors.warning,
+            chartColors.danger, chartColors.info, chartColors.purple,
+            chartColors.pink, chartColors.teal, chartColors.orange, '#94a3b8'
+        ];
+        new Chart(document.getElementById('companiesByCountryChart'), {
+            type: 'bar',
+            data: {
+                labels: data.companies_by_country.labels,
+                datasets: [{
+                    label: 'Clinics',
+                    data: data.companies_by_country.data,
+                    backgroundColor: countryColors.slice(0, data.companies_by_country.labels.length),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barThickness: 24
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 7. Companies by Currency (Bar)
+        new Chart(document.getElementById('companiesByCurrencyChart'), {
+            type: 'bar',
+            data: {
+                labels: data.companies_by_currency.labels,
+                datasets: [{
+                    label: 'Clinics',
+                    data: data.companies_by_currency.data,
+                    backgroundColor: [
+                        chartColors.warning, chartColors.primary, chartColors.success,
+                        chartColors.danger, chartColors.info, chartColors.purple
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barThickness: 36
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Failed to load charts:', error);
+        document.querySelectorAll('.chart-canvas-container, .chart-canvas-container-sm').forEach(el => {
+            el.innerHTML = '<div class="chart-loading"><i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>Failed to load chart data</div>';
+        });
+    }
+}
+
+// Load charts when DOM is ready
+document.addEventListener('DOMContentLoaded', loadCharts);
+
+// Password Modal
+function openPasswordModal(userId, username) {
+    currentUserId = userId;
+    document.getElementById('passwordTargetUser').textContent = username;
+    document.getElementById('passwordForm').action = `/super-admin/user/${userId}/change-password`;
+    document.getElementById('newPassword').value = '';
+    openModal('passwordModal');
+}
+
+// Delete Company Modal
+function openDeleteCompanyModal(companyId, companyName, patientCount, appointmentCount) {
+    currentCompanyId = companyId;
+    companyNameToDelete = companyName;
+    document.getElementById('deleteCompanyName').textContent = companyName;
+    document.getElementById('deleteCompanyPatients').textContent = patientCount;
+    document.getElementById('deleteCompanyAppointments').textContent = appointmentCount;
+    document.getElementById('deleteCompanyForm').action = `/super-admin/company/${companyId}/delete`;
+    document.getElementById('confirmCompanyName').value = '';
+    document.getElementById('deleteCompanySubmitBtn').disabled = true;
+    openModal('deleteCompanyModal');
+}
+
+document.getElementById('confirmCompanyName').addEventListener('input', function() {
+    document.getElementById('deleteCompanySubmitBtn').disabled = this.value.trim() !== companyNameToDelete.trim();
+});
+
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Password changed successfully', 'success');
+            closeModal('passwordModal');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to change password', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+    }
+});
+
+document.getElementById('deleteCompanyForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal('deleteCompanyModal');
+            const row = document.getElementById('company-row-' + currentCompanyId);
+            const card = document.getElementById('company-card-' + currentCompanyId);
+            if (row) row.remove();
+            if (card) card.remove();
+            const remaining = document.querySelectorAll('.mobile-card, .table-glass tbody tr');
+            if (remaining.length === 0) location.reload();
+        } else {
+            showToast(data.message || 'Failed to delete company', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Delete Clinic';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Delete Clinic';
+    }
+});
+</script>
+{% endblock %}

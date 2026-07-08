@@ -1,0 +1,714 @@
+{% extends "base.html" %}
+
+{% block title %}{{ data.company.name }} - Super Admin View - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="position: relative; width: 48px; height: 48px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+            <img src="{{ url_for('static', filename=data.company.logo or 'uploads/default_logo.jpg') }}" 
+                 alt="{{ data.company.name }}" 
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+            <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                <i class="fas fa-clinic-medical" style="color: white; font-size: 1.2rem;"></i>
+            </div>
+        </div>
+        <div>
+            <h1 class="page-title" style="margin-bottom: 0;">{{ data.company.name }}</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">{{ data.company.city }}, {{ data.company.country }} | {{ data.company.currency }} | {{ data.company.timezone }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Company Info Card -->
+<div class="glass-card" style="margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0;">
+            <i class="fas fa-info-circle" style="color: #818cf8;"></i> Company Details
+        </h3>
+        <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteCompanyModal({{ data.company.id }}, '{{ data.company.name|replace("'", "\'") }}', {{ data.patients|length }}, {{ data.appointments|length }})">
+            <i class="fas fa-trash"></i> Delete Clinic
+        </button>
+    </div>
+
+    <div class="two-column" style="gap: 16px;">
+        <div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-building"></i> Name</span>
+                <span class="info-value">{{ data.company.name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-map-marker-alt"></i> Address</span>
+                <span class="info-value">{{ data.company.address }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-city"></i> City</span>
+                <span class="info-value">{{ data.company.city }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-globe"></i> Country</span>
+                <span class="info-value">{{ data.company.country }}</span>
+            </div>
+        </div>
+        <div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-coins"></i> Currency</span>
+                <span class="info-value">{{ data.company.currency }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-clock"></i> Timezone</span>
+                <span class="info-value">{{ data.company.timezone }}</span>
+            </div>
+            {% if data.company.phone %}
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-phone"></i> Phone</span>
+                <span class="info-value">
+                    <a href="tel:{{ data.company.phone }}" style="color: #34d399; text-decoration: none;">{{ data.company.phone }}</a>
+                    <a href="https://wa.me/{{ data.company.phone }}" target="_blank" rel="noopener" style="margin-left: 8px; color: #25d366;">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+            {% if data.company.email %}
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-envelope"></i> Email</span>
+                <span class="info-value">{{ data.company.email }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if data.company.description %}
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7;">{{ data.company.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Admin Card -->
+<div class="glass-card" style="margin-bottom: 20px;">
+    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-user-shield" style="color: #fbbf24;"></i> Admin Account
+    </h3>
+
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+        <div style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, #fbbf24, #d97706); display: flex; align-items: center; justify-content: center;">
+            <img src="{{ url_for('static', filename=data.admin.profile_picture or 'uploads/default.jpg') }}" 
+                 alt="{{ data.admin.username }}" 
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.avatar-fallback').style.display='flex';"
+                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+            <div class="avatar-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                <i class="fas fa-user-md" style="color: white; font-size: 1.5rem;"></i>
+            </div>
+        </div>
+        <div>
+            <div style="font-weight: 700; font-size: 1.1rem;">{{ data.admin.username }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">{{ data.admin.email }}</div>
+        </div>
+    </div>
+
+    <div class="two-column" style="gap: 16px;">
+        <div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-user"></i> Username</span>
+                <span class="info-value">{{ data.admin.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-envelope"></i> Email</span>
+                <span class="info-value">{{ data.admin.email }}</span>
+            </div>
+            {% if data.admin.phone %}
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-phone"></i> Phone</span>
+                <span class="info-value">
+                    <a href="tel:{{ data.admin.phone }}" style="color: #34d399; text-decoration: none;">{{ data.admin.phone }}</a>
+                    <a href="https://wa.me/{{ data.admin.phone }}" target="_blank" rel="noopener" style="margin-left: 8px; color: #25d366;">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+        <div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-key"></i> Password</span>
+                <span class="info-value">
+                    <span class="password-text">{{ data.admin.password }}</span>
+                    <button type="button" onclick="copyToClipboard('{{ data.admin.password }}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 6px; padding: 2px;">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-id-badge"></i> Role</span>
+                <span class="info-value"><span class="badge badge-warning">Admin</span></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><i class="fas fa-toggle-on"></i> Status</span>
+                <span class="info-value">
+                    {% if data.admin.is_active %}
+                        <span class="badge badge-active">Active</span>
+                    {% else %}
+                        <span class="badge badge-inactive">Inactive</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-warning btn-sm" onclick="openPasswordModal({{ data.admin.id }}, '{{ data.admin.username|replace("'", "\'") }}')">
+            <i class="fas fa-key"></i> Change Admin Password
+        </button>
+        {% if data.admin.phone %}
+        <a href="tel:{{ data.admin.phone }}" class="btn btn-call btn-sm">
+            <i class="fas fa-phone"></i> Call Admin
+        </a>
+        <a href="https://wa.me/{{ data.admin.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Patients Table -->
+<div class="glass-card-static" style="margin-bottom: 20px;">
+    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-users" style="color: #34d399;"></i> Patients ({{ data.patients|length }})
+    </h3>
+
+    {% if data.patients and data.patients|length > 0 %}
+    <!-- Desktop -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Password</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Emergency</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in data.patients %}
+                <tr id="patient-row-{{ patient.user.id }}">
+                    <td><strong>{{ patient.full_name }}</strong></td>
+                    <td>{{ patient.user.username }}</td>
+                    <td>{{ patient.user.email }}</td>
+                    <td>
+                        {% if patient.user.phone %}
+                        <a href="tel:{{ patient.user.phone }}" style="color: #34d399; text-decoration: none;">{{ patient.user.phone }}</a>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="password-text">{{ patient.user.password }}</span></td>
+                    <td>{{ patient.age or '-' }}</td>
+                    <td>{{ patient.gender or '-' }}</td>
+                    <td>
+                        {% if patient.emergency_contact %}
+                        <a href="tel:{{ patient.emergency_contact }}" style="color: #f87171; text-decoration: none;">
+                            <i class="fas fa-exclamation-circle"></i> {{ patient.emergency_contact }}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            {% if patient.user.phone %}
+                            <a href="tel:{{ patient.user.phone }}" class="btn btn-call btn-sm" title="Call">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/{{ patient.user.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-warning btn-sm" onclick="openPasswordModal({{ patient.user.id }}, '{{ patient.user.username|replace("'", "\'") }}')">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteUserModal({{ patient.user.id }}, '{{ patient.user.username|replace("'", "\'") }}', 'patient', '{{ patient.user.email }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile -->
+    <div class="mobile-table-cards d-md-none">
+        {% for patient in data.patients %}
+        <div class="mobile-card" id="patient-card-{{ patient.user.id }}">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Name</span>
+                <span class="mobile-card-value" style="font-weight: 700;">{{ patient.full_name }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Username</span>
+                <span class="mobile-card-value">{{ patient.user.username }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Email</span>
+                <span class="mobile-card-value">{{ patient.user.email }}</span>
+            </div>
+            {% if patient.user.phone %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Phone</span>
+                <span class="mobile-card-value">
+                    <a href="tel:{{ patient.user.phone }}" style="color: #34d399; text-decoration: none;">{{ patient.user.phone }}</a>
+                </span>
+            </div>
+            {% endif %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Password</span>
+                <span class="mobile-card-value">
+                    <span class="password-text">{{ patient.user.password }}</span>
+                </span>
+            </div>
+            {% if patient.age %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Age</span>
+                <span class="mobile-card-value">{{ patient.age }}</span>
+            </div>
+            {% endif %}
+            {% if patient.gender %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Gender</span>
+                <span class="mobile-card-value">{{ patient.gender }}</span>
+            </div>
+            {% endif %}
+            {% if patient.emergency_contact %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Emergency</span>
+                <span class="mobile-card-value">
+                    <a href="tel:{{ patient.emergency_contact }}" style="color: #f87171; text-decoration: none;">
+                        <i class="fas fa-exclamation-circle"></i> {{ patient.emergency_contact }}
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+            <div class="mobile-card-actions" style="flex-wrap: wrap;">
+                {% if patient.user.phone %}
+                <a href="tel:{{ patient.user.phone }}" class="btn btn-call btn-sm" style="flex: 1;">
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/{{ patient.user.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" style="flex: 1;">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+                {% endif %}
+                <button type="button" class="btn btn-warning btn-sm" style="flex: 1;" onclick="openPasswordModal({{ patient.user.id }}, '{{ patient.user.username|replace("'", "\'") }}')">
+                    <i class="fas fa-key"></i> Password
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" style="flex: 1;" onclick="openDeleteUserModal({{ patient.user.id }}, '{{ patient.user.username|replace("'", "\'") }}', 'patient', '{{ patient.user.email }}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 32px 20px;">
+        <div class="empty-state-icon"><i class="fas fa-users-slash"></i></div>
+        <h3 class="empty-state-title">No Patients</h3>
+        <p class="empty-state-text">No patients have registered with this clinic yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Appointments Table -->
+<div class="glass-card-static">
+    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-calendar-alt" style="color: #a78bfa;"></i> Appointments ({{ data.appointments|length }})
+    </h3>
+
+    {% if data.appointments and data.appointments|length > 0 %}
+    <!-- Desktop -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                    <th>Phone</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in data.appointments %}
+                <tr>
+                    <td><strong>{{ appointment.patient.full_name or appointment.patient.user.username }}</strong></td>
+                    <td>{{ appointment.appointment_date }}</td>
+                    <td>{{ appointment.time_slot }}</td>
+                    <td>
+                        {% if appointment.status == 'pending' %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% elif appointment.status == 'completed' %}
+                            <span class="badge badge-completed">Completed</span>
+                        {% elif appointment.status == 'cancelled' %}
+                            <span class="badge badge-cancelled">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.amount %}
+                        <span style="font-weight: 600;">{{ data.company.currency }} {{ "%.2f"|format(appointment.amount) }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.payment_status == 'paid' %}
+                            <span class="badge badge-paid">{{ appointment.payment_method|title }} Paid</span>
+                        {% elif appointment.payment_status == 'pending' and appointment.status == 'completed' %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.patient.user.phone %}
+                        <div style="display: flex; gap: 4px;">
+                            <a href="tel:{{ appointment.patient.user.phone }}" class="btn btn-call btn-sm" title="Call">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/{{ appointment.patient.user.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile -->
+    <div class="mobile-table-cards d-md-none">
+        {% for appointment in data.appointments %}
+        <div class="mobile-card">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Patient</span>
+                <span class="mobile-card-value" style="font-weight: 700;">{{ appointment.patient.full_name or appointment.patient.user.username }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Date & Time</span>
+                <span class="mobile-card-value">{{ appointment.appointment_date }} {{ appointment.time_slot }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Status</span>
+                <span class="mobile-card-value">
+                    {% if appointment.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% elif appointment.status == 'completed' %}
+                        <span class="badge badge-completed">Completed</span>
+                    {% elif appointment.status == 'cancelled' %}
+                        <span class="badge badge-cancelled">Cancelled</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if appointment.amount %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Amount</span>
+                <span class="mobile-card-value" style="font-weight: 600;">{{ data.company.currency }} {{ "%.2f"|format(appointment.amount) }}</span>
+            </div>
+            {% endif %}
+            {% if appointment.payment_status %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Payment</span>
+                <span class="mobile-card-value">
+                    {% if appointment.payment_status == 'paid' %}
+                        <span class="badge badge-paid">{{ appointment.payment_method|title }} Paid</span>
+                    {% elif appointment.payment_status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+            {% if appointment.patient.user.phone %}
+            <div class="mobile-card-actions">
+                <a href="tel:{{ appointment.patient.user.phone }}" class="btn btn-call btn-sm" style="flex: 1;">
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/{{ appointment.patient.user.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" style="flex: 1;">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 32px 20px;">
+        <div class="empty-state-icon"><i class="fas fa-calendar-times"></i></div>
+        <h3 class="empty-state-title">No Appointments</h3>
+        <p class="empty-state-text">No appointments have been booked for this clinic yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-key" style="color: #fbbf24; margin-right: 8px;"></i>Change Password</h3>
+            <button class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+            Changing password for: <strong id="passwordTargetUser" style="color: var(--text-primary);"></strong>
+        </p>
+        <form id="passwordForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="newPassword">New Password <span class="required">*</span></label>
+                <div style="position: relative;">
+                    <input type="password" id="newPassword" name="password" placeholder="Enter new password" required minlength="6">
+                    <button type="button" class="password-toggle" data-target="#newPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('passwordModal')">Cancel</button>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal-overlay" id="deleteUserModal">
+    <div class="modal-content" style="border-left: 4px solid #ef4444;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 8px;"></i>Delete User</h3>
+            <button class="modal-close" onclick="closeModal('deleteUserModal')">&times;</button>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 12px;">
+                You are about to permanently delete user: <strong id="deleteUserName" style="color: var(--text-primary);"></strong>
+            </p>
+            <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                <span class="badge badge-info" id="deleteUserRoleBadge">Role</span>
+                <span class="badge badge-secondary" id="deleteUserEmailBadge">Email</span>
+            </div>
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <p style="color: #f87171; font-size: 0.85rem; margin: 0 0 8px 0; font-weight: 600;"><i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>This action will permanently delete:</p>
+                <ul style="color: #fca5a5; font-size: 0.8rem; margin: 0; padding-left: 18px; line-height: 1.6;">
+                    <li id="deleteUserAdminItem" style="display: none;">All companies owned by this admin (including patients, appointments, and all clinic data)</li>
+                    <li id="deleteUserPatientItem" style="display: none;">Patient profile and all appointment history</li>
+                    <li>The user account itself</li>
+                    <li><strong>This action cannot be undone.</strong></li>
+                </ul>
+            </div>
+        </div>
+        <form id="deleteUserForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="confirmUserName">Type the username to confirm <span class="required">*</span></label>
+                <input type="text" id="confirmUserName" placeholder="Type username here..." required autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('deleteUserModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="deleteUserSubmitBtn" disabled>
+                    <i class="fas fa-trash"></i> Delete User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Company Confirmation Modal -->
+<div class="modal-overlay" id="deleteCompanyModal">
+    <div class="modal-content" style="border-left: 4px solid #ef4444;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 8px;"></i>Delete Clinic</h3>
+            <button class="modal-close" onclick="closeModal('deleteCompanyModal')">&times;</button>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 12px;">
+                You are about to permanently delete: <strong id="deleteCompanyName" style="color: var(--text-primary);"></strong>
+            </p>
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <p style="color: #f87171; font-size: 0.85rem; margin: 0 0 8px 0; font-weight: 600;"><i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>This action will permanently delete:</p>
+                <ul style="color: #fca5a5; font-size: 0.8rem; margin: 0; padding-left: 18px; line-height: 1.6;">
+                    <li>All patient profiles registered under this clinic</li>
+                    <li>All appointments (past and future) for this clinic</li>
+                    <li>The clinic itself and all its data</li>
+                    <li style="color: #fbbf24;"><strong>The admin user will NOT be deleted</strong> - they can create a new clinic</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--text-secondary);">
+                <span><i class="fas fa-users" style="margin-right: 4px; color: #818cf8;"></i><strong id="deleteCompanyPatients">0</strong> patients will be affected</span>
+                <span><i class="fas fa-calendar" style="margin-right: 4px; color: #fbbf24;"></i><strong id="deleteCompanyAppointments">0</strong> appointments will be deleted</span>
+            </div>
+        </div>
+        <form id="deleteCompanyForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="confirmCompanyName">Type the clinic name to confirm <span class="required">*</span></label>
+                <input type="text" id="confirmCompanyName" placeholder="Type clinic name here..." required autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('deleteCompanyModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="deleteCompanySubmitBtn" disabled>
+                    <i class="fas fa-trash"></i> Delete Clinic
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentUserId = null;
+let currentCompanyId = null;
+let userNameToDelete = '';
+let companyNameToDelete = '';
+
+function openPasswordModal(userId, username) {
+    currentUserId = userId;
+    document.getElementById('passwordTargetUser').textContent = username;
+    document.getElementById('passwordForm').action = `/super-admin/user/${userId}/change-password`;
+    document.getElementById('newPassword').value = '';
+    openModal('passwordModal');
+}
+
+function openDeleteUserModal(userId, username, role, email) {
+    currentUserId = userId;
+    userNameToDelete = username;
+    document.getElementById('deleteUserName').textContent = username;
+    document.getElementById('deleteUserRoleBadge').textContent = role.toUpperCase();
+    document.getElementById('deleteUserEmailBadge').textContent = email;
+    document.getElementById('deleteUserForm').action = `/super-admin/user/${userId}/delete`;
+    document.getElementById('confirmUserName').value = '';
+    document.getElementById('deleteUserSubmitBtn').disabled = true;
+    document.getElementById('deleteUserAdminItem').style.display = role === 'admin' ? 'list-item' : 'none';
+    document.getElementById('deleteUserPatientItem').style.display = role === 'patient' ? 'list-item' : 'none';
+    openModal('deleteUserModal');
+}
+
+function openDeleteCompanyModal(companyId, companyName, patientCount, appointmentCount) {
+    currentCompanyId = companyId;
+    companyNameToDelete = companyName;
+    document.getElementById('deleteCompanyName').textContent = companyName;
+    document.getElementById('deleteCompanyPatients').textContent = patientCount;
+    document.getElementById('deleteCompanyAppointments').textContent = appointmentCount;
+    document.getElementById('deleteCompanyForm').action = `/super-admin/company/${companyId}/delete`;
+    document.getElementById('confirmCompanyName').value = '';
+    document.getElementById('deleteCompanySubmitBtn').disabled = true;
+    openModal('deleteCompanyModal');
+}
+
+document.getElementById('confirmUserName').addEventListener('input', function() {
+    document.getElementById('deleteUserSubmitBtn').disabled = this.value.trim() !== userNameToDelete.trim();
+});
+
+document.getElementById('confirmCompanyName').addEventListener('input', function() {
+    document.getElementById('deleteCompanySubmitBtn').disabled = this.value.trim() !== companyNameToDelete.trim();
+});
+
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Password changed successfully', 'success');
+            closeModal('passwordModal');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to change password', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+    }
+});
+
+document.getElementById('deleteUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal('deleteUserModal');
+            const row = document.getElementById('patient-row-' + currentUserId);
+            const card = document.getElementById('patient-card-' + currentUserId);
+            if (row) row.remove();
+            if (card) card.remove();
+        } else {
+            showToast(data.message || 'Failed to delete user', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Delete User';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Delete User';
+    }
+});
+
+document.getElementById('deleteCompanyForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal('deleteCompanyModal');
+            setTimeout(() => { window.location.href = '/super-admin/companies'; }, 1500);
+        } else {
+            showToast(data.message || 'Failed to delete clinic', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Delete Clinic';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Delete Clinic';
+    }
+});
+</script>
+{% endblock %}

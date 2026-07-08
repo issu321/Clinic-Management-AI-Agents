@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}All Users - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-users-cog" style="color: #818cf8; margin-right: 10px;"></i>All Users</h1>
+    <p class="page-subtitle">Manage system users across all companies</p>
+</div>
+
+<!-- Filters -->
+<div class="glass-card-static" style="margin-bottom: 20px;">
+    <form method="GET" action="{{ url_for('super_admin.get_all_users') }}" id="filterForm">
+        <div class="filter-bar">
+            <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                <label class="form-label" for="role">Role</label>
+                <select id="role" name="role" onchange="this.form.submit()">
+                    <option value="" {% if not request.args.get('role') %}selected{% endif %}>All Roles</option>
+                    <option value="admin" {% if request.args.get('role') == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="patient" {% if request.args.get('role') == 'patient' %}selected{% endif %}>Patient</option>
+                    <option value="super_admin" {% if request.args.get('role') == 'super_admin' %}selected{% endif %}>Super Admin</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 2;">
+                <label class="form-label" for="search">Search</label>
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search" name="search" placeholder="Search by username or email..." value="{{ request.args.get('search', '') }}">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if users and users|length > 0 %}
+<!-- Desktop Table -->
+<div class="table-responsive d-none d-md-block" style="margin-bottom: 20px;">
+    <table class="table-glass">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Password</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr id="user-row-{{ user.id }}">
+                <td><span style="font-family: monospace; color: var(--text-muted);">{{ user.id }}</span></td>
+                <td><strong>{{ user.username }}</strong></td>
+                <td>{{ user.email }}</td>
+                <td>
+                    {% if user.phone %}
+                    <a href="tel:{{ user.phone }}" style="color: #34d399; text-decoration: none;">
+                        {{ user.phone }}
+                    </a>
+                    {% else %}
+                    <span style="color: var(--text-muted);">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-{{ 'info' if user.role == 'super_admin' else 'warning' if user.role == 'admin' else 'success' }}">
+                        {{ user.role|title }}
+                    </span>
+                </td>
+                <td><span class="password-text">{{ user.password }}</span></td>
+                <td>
+                    {% if user.is_active %}
+                        <span class="badge badge-active"><i class="fas fa-check-circle"></i> Active</span>
+                    {% else %}
+                        <span class="badge badge-inactive"><i class="fas fa-times-circle"></i> Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-warning btn-sm" onclick="openPasswordModal({{ user.id }}, '{{ user.username|replace("'", "\'") }}')">
+                            <i class="fas fa-key"></i> Password
+                        </button>
+                        <button type="button" class="btn btn-sm {{ 'btn-danger' if user.is_active else 'btn-success' }}" onclick="toggleStatus({{ user.id }}, {{ 'false' if user.is_active else 'true' }})">
+                            <i class="fas fa-{{ 'ban' if user.is_active else 'check' }}"></i>
+                            {{ 'Deactivate' if user.is_active else 'Activate' }}
+                        </button>
+                        {% if user.id != current_user.id %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteUserModal({{ user.id }}, '{{ user.username|replace("'", "\'") }}', '{{ user.role }}', '{{ user.email }}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Mobile Cards -->
+<div class="mobile-table-cards d-md-none">
+    {% for user in users %}
+    <div class="mobile-card" id="user-card-{{ user.id }}">
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">ID</span>
+            <span class="mobile-card-value" style="font-family: monospace; color: var(--text-muted);">{{ user.id }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Username</span>
+            <span class="mobile-card-value" style="font-weight: 700;">{{ user.username }}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Email</span>
+            <span class="mobile-card-value">{{ user.email }}</span>
+        </div>
+        {% if user.phone %}
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Phone</span>
+            <span class="mobile-card-value">
+                <a href="tel:{{ user.phone }}" style="color: #34d399; text-decoration: none;">{{ user.phone }}</a>
+            </span>
+        </div>
+        {% endif %}
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Role</span>
+            <span class="mobile-card-value">
+                <span class="badge badge-{{ 'info' if user.role == 'super_admin' else 'warning' if user.role == 'admin' else 'success' }}">
+                    {{ user.role|title }}
+                </span>
+            </span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Password</span>
+            <span class="mobile-card-value">
+                <span class="password-text">{{ user.password }}</span>
+            </span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Status</span>
+            <span class="mobile-card-value">
+                {% if user.is_active %}
+                    <span class="badge badge-active">Active</span>
+                {% else %}
+                    <span class="badge badge-inactive">Inactive</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="mobile-card-actions" style="flex-wrap: wrap;">
+            <button type="button" class="btn btn-warning btn-sm" style="flex: 1; min-width: 100px;" onclick="openPasswordModal({{ user.id }}, '{{ user.username|replace("'", "\'") }}')">
+                <i class="fas fa-key"></i> Change Password
+            </button>
+            <button type="button" class="btn btn-sm {{ 'btn-danger' if user.is_active else 'btn-success' }}" style="flex: 1; min-width: 100px;" onclick="toggleStatus({{ user.id }}, {{ 'false' if user.is_active else 'true' }})">
+                <i class="fas fa-{{ 'ban' if user.is_active else 'check' }}"></i>
+                {{ 'Deactivate' if user.is_active else 'Activate' }}
+            </button>
+            {% if user.id != current_user.id %}
+            <button type="button" class="btn btn-danger btn-sm" style="flex: 1; min-width: 100px;" onclick="openDeleteUserModal({{ user.id }}, '{{ user.username|replace("'", "\'") }}', '{{ user.role }}', '{{ user.email }}')">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="glass-card-static">
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-users-slash"></i></div>
+        <h3 class="empty-state-title">No Users Found</h3>
+        <p class="empty-state-text">Try adjusting your filters or wait for users to register.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-key" style="color: #fbbf24; margin-right: 8px;"></i>Change Password</h3>
+            <button class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+            Changing password for: <strong id="passwordTargetUser" style="color: var(--text-primary);"></strong>
+        </p>
+        <form id="passwordForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="newPassword">New Password <span class="required">*</span></label>
+                <div style="position: relative;">
+                    <input type="password" id="newPassword" name="password" placeholder="Enter new password" required minlength="6">
+                    <button type="button" class="password-toggle" data-target="#newPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('passwordModal')">Cancel</button>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal-overlay" id="deleteUserModal">
+    <div class="modal-content" style="border-left: 4px solid #ef4444;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 8px;"></i>Delete User</h3>
+            <button class="modal-close" onclick="closeModal('deleteUserModal')">&times;</button>
+        </div>
+        <div style="margin-bottom: 16px;">
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 12px;">
+                You are about to permanently delete user: <strong id="deleteUserName" style="color: var(--text-primary);"></strong>
+            </p>
+            <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                <span class="badge badge-info" id="deleteUserRoleBadge">Role</span>
+                <span class="badge badge-secondary" id="deleteUserEmailBadge">Email</span>
+            </div>
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <p style="color: #f87171; font-size: 0.85rem; margin: 0 0 8px 0; font-weight: 600;"><i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>This action will permanently delete:</p>
+                <ul style="color: #fca5a5; font-size: 0.8rem; margin: 0; padding-left: 18px; line-height: 1.6;">
+                    <li id="deleteUserAdminItem" style="display: none;">All companies owned by this admin (including patients, appointments, and all clinic data)</li>
+                    <li id="deleteUserPatientItem" style="display: none;">Patient profile and all appointment history</li>
+                    <li>The user account itself</li>
+                    <li><strong>This action cannot be undone.</strong></li>
+                </ul>
+            </div>
+        </div>
+        <form id="deleteUserForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="confirmUserName">Type the username to confirm <span class="required">*</span></label>
+                <input type="text" id="confirmUserName" placeholder="Type username here..." required autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('deleteUserModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="deleteUserSubmitBtn" disabled>
+                    <i class="fas fa-trash"></i> Delete User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentUserId = null;
+let userNameToDelete = '';
+
+function clearFilters() {
+    document.getElementById('role').value = '';
+    document.getElementById('search').value = '';
+    document.getElementById('filterForm').submit();
+}
+
+function openPasswordModal(userId, username) {
+    currentUserId = userId;
+    document.getElementById('passwordTargetUser').textContent = username;
+    document.getElementById('passwordForm').action = `/super-admin/user/${userId}/change-password`;
+    document.getElementById('newPassword').value = '';
+    openModal('passwordModal');
+}
+
+function openDeleteUserModal(userId, username, role, email) {
+    currentUserId = userId;
+    userNameToDelete = username;
+    document.getElementById('deleteUserName').textContent = username;
+    document.getElementById('deleteUserRoleBadge').textContent = role.toUpperCase();
+    document.getElementById('deleteUserEmailBadge').textContent = email;
+    document.getElementById('deleteUserForm').action = `/super-admin/user/${userId}/delete`;
+    document.getElementById('confirmUserName').value = '';
+    document.getElementById('deleteUserSubmitBtn').disabled = true;
+
+    // Show/hide relevant deletion info based on role
+    document.getElementById('deleteUserAdminItem').style.display = role === 'admin' ? 'list-item' : 'none';
+    document.getElementById('deleteUserPatientItem').style.display = role === 'patient' ? 'list-item' : 'none';
+
+    openModal('deleteUserModal');
+}
+
+document.getElementById('confirmUserName').addEventListener('input', function() {
+    const btn = document.getElementById('deleteUserSubmitBtn');
+    btn.disabled = this.value.trim() !== userNameToDelete.trim();
+});
+
+async function toggleStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const confirmed = await confirmAction(`Are you sure you want to ${action} this user?`);
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`/super-admin/user/${userId}/toggle-status`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast(`User ${action}d successfully`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || `Failed to ${action} user`, 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    }
+}
+
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Password changed successfully', 'success');
+            closeModal('passwordModal');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to change password', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+    }
+});
+
+document.getElementById('deleteUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal('deleteUserModal');
+            const row = document.getElementById('user-row-' + currentUserId);
+            const card = document.getElementById('user-card-' + currentUserId);
+            if (row) row.remove();
+            if (card) card.remove();
+            const remaining = document.querySelectorAll('.mobile-card, .table-glass tbody tr');
+            if (remaining.length === 0) location.reload();
+        } else {
+            showToast(data.message || 'Failed to delete user', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Delete User';
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Delete User';
+    }
+});
+</script>
+{% endblock %}

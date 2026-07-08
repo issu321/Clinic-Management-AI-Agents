@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-calendar-check" style="color: #818cf8; margin-right: 10px;"></i>Appointments</h1>
+    <p class="page-subtitle">Manage all clinic appointments</p>
+</div>
+
+<!-- Filters -->
+<div class="glass-card-static" style="margin-bottom: 20px;">
+    <form method="GET" action="{{ url_for('admin.get_appointments') }}" id="filterForm">
+        <div class="filter-bar">
+            <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                <label class="form-label" for="status">Status</label>
+                <select id="status" name="status" onchange="this.form.submit()">
+                    <option value="" {% if not request.args.get('status') %}selected{% endif %}>All Statuses</option>
+                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                <label class="form-label" for="date">Date</label>
+                <input type="date" id="date" name="date" value="{{ request.args.get('date', '') }}" onchange="this.form.submit()">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Appointments Table -->
+<div class="glass-card-static">
+    {% if appointments and appointments|length > 0 %}
+    <!-- Desktop Table -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Notes</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in appointments %}
+                <tr>
+                    <td>
+                        <strong>{{ appointment.patient.full_name or appointment.patient.username }}</strong>
+                    </td>
+                    <td>{{ appointment.appointment_date }}</td>
+                    <td>{{ appointment.time_slot }}</td>
+                    <td>
+                        {% if appointment.notes %}
+                        <span style="font-size: 0.85rem; color: var(--text-secondary); max-width: 150px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ appointment.notes }}
+                        </span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.status == 'pending' %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% elif appointment.status == 'completed' %}
+                            <span class="badge badge-completed">Completed</span>
+                        {% elif appointment.status == 'cancelled' %}
+                            <span class="badge badge-cancelled">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.amount %}
+                        <span style="font-weight: 600;">{{ company.currency }} {{ "%.2f"|format(appointment.amount) }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.payment_status == 'completed' %}
+                            <span class="badge badge-paid">{{ appointment.payment_method|title }} Paid</span>
+                        {% elif appointment.payment_status == 'pending' and appointment.status == 'completed' %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.patient.phone %}
+                        <div style="display: flex; gap: 4px;">
+                            <a href="tel:{{ appointment.patient.phone }}" class="btn btn-call btn-sm" title="Call">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/{{ appointment.patient.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            {% if appointment.status == 'pending' %}
+                            <button type="button" class="btn btn-success btn-sm" onclick="openCompleteModal({{ appointment.id }})">
+                                <i class="fas fa-check"></i> Complete
+                            </button>
+                            {% elif appointment.status == 'completed' and appointment.payment_status == 'pending' %}
+                            <button type="button" class="btn btn-info btn-sm" onclick="openPaymentModal({{ appointment.id }})">
+                                <i class="fas fa-dollar-sign"></i> Payment
+                            </button>
+                            {% endif %}
+                            {% if appointment.status != 'cancelled' %}
+                            <button type="button" class="btn btn-danger btn-sm" onclick="cancelAppointment({{ appointment.id }})">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="mobile-table-cards d-md-none">
+        {% for appointment in appointments %}
+        <div class="mobile-card">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Patient</span>
+                <span class="mobile-card-value">{{ appointment.patient.full_name or appointment.patient.username }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Date & Time</span>
+                <span class="mobile-card-value">{{ appointment.appointment_date }} {{ appointment.time_slot }}</span>
+            </div>
+            {% if appointment.notes %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Notes</span>
+                <span class="mobile-card-value" style="max-width: 60%; text-overflow: ellipsis; overflow: hidden;">{{ appointment.notes }}</span>
+            </div>
+            {% endif %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Status</span>
+                <span class="mobile-card-value">
+                    {% if appointment.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% elif appointment.status == 'completed' %}
+                        <span class="badge badge-completed">Completed</span>
+                    {% elif appointment.status == 'cancelled' %}
+                        <span class="badge badge-cancelled">Cancelled</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if appointment.amount %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Amount</span>
+                <span class="mobile-card-value">{{ company.currency }} {{ "%.2f"|format(appointment.amount) }}</span>
+            </div>
+            {% endif %}
+            {% if appointment.payment_status == 'completed' %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Payment</span>
+                <span class="mobile-card-value"><span class="badge badge-paid">{{ appointment.payment_method|title }} Paid</span></span>
+            </div>
+            {% endif %}
+            {% if appointment.patient.phone %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Phone</span>
+                <span class="mobile-card-value">{{ appointment.patient.phone }}</span>
+            </div>
+            <div class="mobile-card-actions" style="padding-top: 8px;">
+                <a href="tel:{{ appointment.patient.phone }}" class="btn btn-call btn-sm">
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/{{ appointment.patient.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+            </div>
+            {% endif %}
+            <div class="mobile-card-actions" style="padding-top: 8px;">
+                {% if appointment.status == 'pending' %}
+                <button type="button" class="btn btn-success btn-sm" onclick="openCompleteModal({{ appointment.id }})">
+                    <i class="fas fa-check"></i> Complete
+                </button>
+                {% elif appointment.status == 'completed' and appointment.payment_status == 'pending' %}
+                <button type="button" class="btn btn-info btn-sm" onclick="openPaymentModal({{ appointment.id }})">
+                    <i class="fas fa-dollar-sign"></i> Payment
+                </button>
+                {% endif %}
+                {% if appointment.status != 'cancelled' %}
+                <button type="button" class="btn btn-danger btn-sm" onclick="cancelAppointment({{ appointment.id }})">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-calendar-times"></i></div>
+        <h3 class="empty-state-title">No Appointments Found</h3>
+        <p class="empty-state-text">Try adjusting your filters or wait for patients to book appointments.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Mark Complete Modal -->
+<div class="modal-overlay" id="completeModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-check-circle" style="color: var(--success); margin-right: 8px;"></i>Complete Appointment</h3>
+            <button class="modal-close" onclick="closeModal('completeModal')">&times;</button>
+        </div>
+        <form id="completeForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="amount">Amount ({{ company.currency }})</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0" placeholder="Enter amount in {{ company.currency }}" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('completeModal')">Cancel</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check"></i> Mark Complete
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mark Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-dollar-sign" style="color: var(--info); margin-right: 8px;"></i>Mark Payment Received</h3>
+            <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Select the payment method received:</p>
+        </div>
+        <div class="modal-footer" style="flex-direction: column;">
+            <button type="button" class="btn btn-info btn-block" id="markOnlineBtn" onclick="submitPayment('online')">
+                <i class="fas fa-credit-card"></i> Received Online
+            </button>
+            <button type="button" class="btn btn-success btn-block" id="markCashBtn" onclick="submitPayment('cash')">
+                <i class="fas fa-money-bill-wave"></i> Received Cash
+            </button>
+            <button type="button" class="btn btn-outline btn-block" onclick="closeModal('paymentModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentAppointmentId = null;
+
+/* ─── Robust CSRF Token Reader (does not depend on app.js) ─── */
+function getCsrfToken() {
+    // 1. Try meta tag (dash)
+    let meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.getAttribute('content');
+
+    // 2. Try meta tag (underscore) — some legacy setups use this
+    meta = document.querySelector('meta[name="csrf_token"]');
+    if (meta) return meta.getAttribute('content');
+
+    // 3. Try hidden form input
+    const input = document.querySelector('input[name="csrf_token"]');
+    if (input) return input.value;
+
+    // 4. Nothing found
+    return '';
+}
+
+function clearFilters() {
+    document.getElementById('status').value = '';
+    document.getElementById('date').value = '';
+    document.getElementById('filterForm').submit();
+}
+
+function openCompleteModal(appointmentId) {
+    currentAppointmentId = appointmentId;
+    const form = document.getElementById('completeForm');
+    form.action = `/admin/appointment/${appointmentId}/complete`;
+    document.getElementById('amount').value = '';
+    openModal('completeModal');
+}
+
+function openPaymentModal(appointmentId) {
+    currentAppointmentId = appointmentId;
+    openModal('paymentModal');
+}
+
+/* ─── Payment: JSON + X-CSRFToken header ─── */
+async function submitPayment(method) {
+    if (!currentAppointmentId) return;
+
+    const btnId = method === 'online' ? 'markOnlineBtn' : 'markCashBtn';
+    const btn = document.getElementById(btnId);
+    const originalHtml = btn.innerHTML;
+
+    // CSRF guard
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showToast('Security token missing. Please refresh the page and try again.', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    try {
+        const response = await fetch(`/admin/appointment/${currentAppointmentId}/payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ payment_method: method })
+        });
+
+        // If server returns 400/403 with HTML, response.json() will throw.
+        // We catch that and show the raw text so you can debug.
+        let data;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('Non-JSON response from server:', text);
+            showToast(`Server error ${response.status}: ${text.substring(0, 120)}`, 'error');
+            return;
+        }
+
+        if (data.success) {
+            showToast('Payment marked successfully', 'success');
+            closeModal('paymentModal');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to mark payment', 'error');
+        }
+    } catch (error) {
+        console.error('submitPayment error:', error);
+        showToast('An error occurred. Check browser console for details.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+/* ─── Cancel: regular fetch with CSRF header (no dependency on app.js) ─── */
+async function cancelAppointment(appointmentId) {
+    const confirmed = await confirmAction('Are you sure you want to cancel this appointment?');
+    if (!confirmed) return;
+
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showToast('Security token missing. Please refresh the page.', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/appointment/${appointmentId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        let data;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('Non-JSON response from server:', text);
+            showToast(`Server error ${response.status}: ${text.substring(0, 120)}`, 'error');
+            return;
+        }
+
+        if (data.success) {
+            showToast('Appointment cancelled', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to cancel', 'error');
+        }
+    } catch (error) {
+        console.error('cancelAppointment error:', error);
+        showToast('An error occurred', 'error');
+    }
+}
+
+/* ─── Complete form: uses FormData (hidden csrf_token input) ─── */
+document.getElementById('completeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('button[type="submit"]');
+    const originalHtml = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+                // Do NOT set Content-Type here — browser sets multipart/form-data with boundary
+            },
+            body: formData
+        });
+
+        let data;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('Non-JSON response from server:', text);
+            showToast(`Server error ${response.status}: ${text.substring(0, 120)}`, 'error');
+            return;
+        }
+
+        if (data.success) {
+            showToast('Appointment completed', 'success');
+            closeModal('completeModal');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to complete appointment', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    } catch (error) {
+        console.error('completeForm error:', error);
+        showToast('An error occurred', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+});
+</script>
+{% endblock %}

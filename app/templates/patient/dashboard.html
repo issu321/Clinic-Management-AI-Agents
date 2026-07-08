@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}My Dashboard - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="fas fa-hand-sparkles" style="color: #fbbf24; margin-right: 10px;"></i>
+        Hello, {{ data.profile.full_name }}
+    </h1>
+    <p class="page-subtitle">Welcome to your patient dashboard</p>
+</div>
+
+<div class="two-column">
+    <!-- Clinic Card -->
+    <div class="glass-card" style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-clinic-medical" style="color: white; font-size: 1.1rem;"></i>
+            </div>
+            <h2 style="font-size: 1.1rem; font-weight: 700;">My Clinic</h2>
+        </div>
+
+        <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px;">
+            <div style="position: relative; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+                <img src="{{ url_for('static', filename=data.company.logo or 'uploads/default_logo.jpg') }}" 
+                     alt="{{ data.company.name }}" 
+                     onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                     style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                    <i class="fas fa-clinic-medical" style="color: white; font-size: 1.3rem;"></i>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 4px;">{{ data.company.name }}</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+                    {{ data.company.address }}, {{ data.company.city }}, {{ data.company.country }}
+                </p>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% if data.company.phone %}
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem;">
+                <i class="fas fa-phone" style="color: var(--text-muted); width: 18px;"></i>
+                <span>{{ data.company.phone }}</span>
+                <div style="display: flex; gap: 6px; margin-left: auto;">
+                    <a href="tel:{{ data.company.phone }}" class="btn btn-call btn-sm">
+                        <i class="fas fa-phone"></i> Call
+                    </a>
+                    <a href="https://wa.me/{{ data.company.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if data.company.email %}
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem;">
+                <i class="fas fa-envelope" style="color: var(--text-muted); width: 18px;"></i>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ data.company.email }}</span>
+            </div>
+            {% endif %}
+
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem;">
+                <i class="fas fa-coins" style="color: var(--text-muted); width: 18px;"></i>
+                <span>{{ data.company.currency }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Doctor Card -->
+    <div class="glass-card" style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-user-md" style="color: white; font-size: 1.1rem;"></i>
+            </div>
+            <h2 style="font-size: 1.1rem; font-weight: 700;">My Doctor</h2>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+            <div style="position: relative; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center;">
+                <img src="{{ url_for('static', filename=data.doctor.profile_picture or 'uploads/default.jpg') }}" 
+                     alt="{{ data.doctor.name }}" 
+                     onerror="this.style.display='none'; this.parentElement.querySelector('.avatar-fallback').style.display='flex';"
+                     style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                <div class="avatar-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                    <i class="fas fa-user-md" style="color: white; font-size: 1.3rem;"></i>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <h3 style="font-size: 1.1rem; font-weight: 700;">{{ data.doctor.name }}</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">Primary Care Physician</p>
+            </div>
+        </div>
+
+        {% if data.doctor.phone %}
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem;">
+            <i class="fas fa-phone" style="color: var(--text-muted); width: 18px;"></i>
+            <span>{{ data.doctor.phone }}</span>
+            <div style="display: flex; gap: 6px; margin-left: auto;">
+                <a href="tel:{{ data.doctor.phone }}" class="btn btn-call btn-sm">
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/{{ data.doctor.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upcoming Appointments -->
+<div class="glass-card-static" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="font-size: 1.2rem; font-weight: 700;">
+            <i class="fas fa-calendar-day" style="color: #818cf8; margin-right: 8px;"></i>
+            Upcoming Appointments
+        </h2>
+        <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Book New
+        </a>
+    </div>
+
+    {% if data.upcoming_appointments and data.upcoming_appointments|length > 0 %}
+    <!-- Desktop -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in data.upcoming_appointments %}
+                <tr>
+                    <td><strong>{{ appointment.appointment_date }}</strong></td>
+                    <td>{{ appointment.time_slot }}</td>
+                    <td>
+                        {% if appointment.status == 'pending' %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% elif appointment.status == 'completed' %}
+                            <span class="badge badge-completed">Completed</span>
+                        {% elif appointment.status == 'cancelled' %}
+                            <span class="badge badge-cancelled">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.notes %}
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">{{ appointment.notes }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.status == 'pending' %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="cancelMyAppointment({{ appointment.id }})">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile -->
+    <div class="mobile-table-cards d-md-none">
+        {% for appointment in data.upcoming_appointments %}
+        <div class="mobile-card">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Date</span>
+                <span class="mobile-card-value">{{ appointment.appointment_date }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Time</span>
+                <span class="mobile-card-value">{{ appointment.time_slot }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Status</span>
+                <span class="mobile-card-value">
+                    {% if appointment.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% elif appointment.status == 'completed' %}
+                        <span class="badge badge-completed">Completed</span>
+                    {% elif appointment.status == 'cancelled' %}
+                        <span class="badge badge-cancelled">Cancelled</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if appointment.notes %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Notes</span>
+                <span class="mobile-card-value">{{ appointment.notes }}</span>
+            </div>
+            {% endif %}
+            {% if appointment.status == 'pending' %}
+            <div class="mobile-card-actions">
+                <button type="button" class="btn btn-danger btn-sm btn-block" onclick="cancelMyAppointment({{ appointment.id }})">
+                    <i class="fas fa-times"></i> Cancel Appointment
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 32px 20px;">
+        <div class="empty-state-icon"><i class="fas fa-calendar-plus"></i></div>
+        <h3 class="empty-state-title">No Upcoming Appointments</h3>
+        <p class="empty-state-text">Book your first appointment with your clinic now!</p>
+        <a href="{{ url_for('patient.book_appointment') }}" class="btn btn-primary" style="margin-top: 12px;">
+            <i class="fas fa-calendar-plus"></i> Book Appointment
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Past Appointments -->
+<div class="glass-card-static" style="margin-top: 20px;">
+    <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 20px;">
+        <i class="fas fa-history" style="color: #a78bfa; margin-right: 8px;"></i>
+        Past Appointments
+    </h2>
+
+    {% if data.past_appointments and data.past_appointments|length > 0 %}
+    <!-- Desktop -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in data.past_appointments %}
+                <tr>
+                    <td>{{ appointment.appointment_date }}</td>
+                    <td>{{ appointment.time_slot }}</td>
+                    <td>
+                        {% if appointment.status == 'completed' %}
+                            <span class="badge badge-completed">Completed</span>
+                        {% elif appointment.status == 'cancelled' %}
+                            <span class="badge badge-cancelled">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if appointment.amount %}
+                        <span style="font-weight: 600;">{{ data.company.currency }} {{ "%.2f"|format(appointment.amount) }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile -->
+    <div class="mobile-table-cards d-md-none">
+        {% for appointment in data.past_appointments %}
+        <div class="mobile-card">
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Date</span>
+                <span class="mobile-card-value">{{ appointment.appointment_date }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Time</span>
+                <span class="mobile-card-value">{{ appointment.time_slot }}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Status</span>
+                <span class="mobile-card-value">
+                    {% if appointment.status == 'completed' %}
+                        <span class="badge badge-completed">Completed</span>
+                    {% elif appointment.status == 'cancelled' %}
+                        <span class="badge badge-cancelled">Cancelled</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if appointment.amount %}
+            <div class="mobile-card-row">
+                <span class="mobile-card-label">Amount</span>
+                <span class="mobile-card-value" style="font-weight: 600;">{{ data.company.currency }} {{ "%.2f"|format(appointment.amount) }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 32px 20px;">
+        <div class="empty-state-icon"><i class="fas fa-clipboard-list"></i></div>
+        <h3 class="empty-state-title">No Past Appointments</h3>
+        <p class="empty-state-text">Your appointment history will appear here.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function cancelMyAppointment(appointmentId) {
+    const confirmed = await confirmAction('Are you sure you want to cancel this appointment?');
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`/patient/appointment/${appointmentId}/cancel`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('Appointment cancelled successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to cancel appointment', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    }
+}
+</script>
+{% endblock %}

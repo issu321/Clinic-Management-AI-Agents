@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<!-- Company Header Card -->
+<div class="glass-card" style="margin-bottom: 20px;">
+    <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+        <div style="position: relative; width: 100px; height: 100px; border-radius: 20px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+            <img src="{{ url_for('static', filename=company.logo or 'uploads/default_logo.jpg') }}" 
+                 alt="{{ company.name }}" 
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                 style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+            <div class="logo-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: 700; font-size: 2rem; color: rgba(255,255,255,0.7); z-index: 1;">
+                <i class="fas fa-clinic-medical" style="color: white; font-size: 2.5rem;"></i>
+            </div>
+        </div>
+
+        <div style="flex: 1; min-width: 0;">
+            <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; line-height: 1.3;">{{ company.name }}</h1>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px;">
+                {{ company.address }}, {{ company.city }}, {{ company.country }}
+            </p>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                {% if company.phone %}
+                <a href="tel:{{ company.phone }}" class="btn btn-call btn-sm">
+                    <i class="fas fa-phone"></i> Call Clinic
+                </a>
+                <a href="https://wa.me/{{ company.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                {% endif %}
+                <a href="{{ url_for('auth.register_page', role='patient') }}?company_id={{ company.id }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-user-plus"></i> Register with Clinic
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if company.description %}
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 10px; color: var(--text-secondary);">
+            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>About
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7;">{{ company.description }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="two-column">
+    <!-- Clinic Details -->
+    <div class="glass-card" style="flex: 1;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fas fa-info-circle"></i> Clinic Details
+        </h3>
+
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-globe"></i> Country</span>
+            <span class="info-value">{{ company.country }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-map-marker-alt"></i> City</span>
+            <span class="info-value">{{ company.city }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-coins"></i> Currency</span>
+            <span class="info-value">{{ company.currency }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-clock"></i> Timezone</span>
+            <span class="info-value">{{ company.timezone }}</span>
+        </div>
+        {% if company.email %}
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-envelope"></i> Email</span>
+            <span class="info-value">{{ company.email }}</span>
+        </div>
+        {% endif %}
+        {% if company.phone %}
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-phone"></i> Phone</span>
+            <span class="info-value">
+                <a href="tel:{{ company.phone }}" style="color: #34d399; text-decoration: none;">{{ company.phone }}</a>
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Doctor Section -->
+    <div class="glass-card" style="flex: 1;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fas fa-user-md"></i> Doctor
+        </h3>
+
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+            <div style="position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center;">
+                <img src="{{ url_for('static', filename=doctor.profile_picture or 'uploads/default.jpg') }}" 
+                     alt="{{ doctor.name }}" 
+                     onerror="this.style.display='none'; this.parentElement.querySelector('.avatar-fallback').style.display='flex';"
+                     style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                <div class="avatar-fallback" style="display: none; align-items: center; justify-content: center; width: 100%; height: 100%; z-index: 1;">
+                    <i class="fas fa-user-md" style="color: white; font-size: 1.5rem;"></i>
+                </div>
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 1.1rem;">{{ doctor.name }}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Primary Care Physician</div>
+            </div>
+        </div>
+
+        {% if doctor.phone %}
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem;">
+            <i class="fas fa-phone" style="color: var(--text-muted); width: 16px;"></i>
+            <span>{{ doctor.phone }}</span>
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+            {% if doctor.phone %}
+            <a href="tel:{{ doctor.phone }}" class="btn btn-call btn-sm" style="flex: 1;">
+                <i class="fas fa-phone"></i> Call Doctor
+            </a>
+            <a href="https://wa.me/{{ doctor.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" style="flex: 1;">
+                <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="glass-card" style="margin-top: 20px; text-align: center; padding: 32px 20px;">
+    <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 12px;">Ready to Join {{ company.name }}?</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        Register as a patient to book appointments and manage your healthcare with this clinic.
+    </p>
+    <a href="{{ url_for('auth.register_page', role='patient') }}?company_id={{ company.id }}" class="btn btn-primary btn-lg" style="max-width: 300px; width: 100%;">
+        <i class="fas fa-user-plus"></i> Register with this Clinic
+    </a>
+</div>
+{% endblock %}

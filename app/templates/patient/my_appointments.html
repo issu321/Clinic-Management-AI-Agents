@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}My Appointments - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><i class="fas fa-list" style="color: #818cf8; margin-right: 10px;"></i>My Appointments</h1>
+    <p class="page-subtitle">View all your appointment history</p>
+</div>
+
+<div class="tab-wrapper">
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="upcoming">
+            <i class="fas fa-calendar-day"></i> Upcoming
+        </button>
+        <button class="tab-btn" data-tab="past">
+            <i class="fas fa-history"></i> Past
+        </button>
+        <button class="tab-btn" data-tab="cancelled">
+            <i class="fas fa-times-circle"></i> Cancelled
+        </button>
+    </div>
+
+    <!-- Upcoming Tab -->
+    <div class="tab-panel active" id="tab-upcoming">
+        {% if appointments and appointments|length > 0 %}
+            {% set upcoming = [] %}
+            {% for appointment in appointments %}
+                {% if appointment.status == 'pending' %}
+                    {% set _ = upcoming.append(appointment) %}
+                {% endif %}
+            {% endfor %}
+            {% if upcoming|length > 0 %}
+        <div class="mobile-table-cards">
+            {% for appointment in upcoming %}
+            <div class="mobile-card">
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Date</span>
+                    <span class="mobile-card-value" style="font-weight: 600;">{{ appointment.appointment_date }}</span>
+                </div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Time</span>
+                    <span class="mobile-card-value">{{ appointment.time_slot }}</span>
+                </div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Status</span>
+                    <span class="mobile-card-value">
+                        <span class="badge badge-pending"><i class="fas fa-clock"></i> Pending</span>
+                    </span>
+                </div>
+                {% if appointment.notes %}
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Notes</span>
+                    <span class="mobile-card-value">{{ appointment.notes }}</span>
+                </div>
+                {% endif %}
+                <div class="mobile-card-actions">
+                    <button type="button" class="btn btn-danger btn-sm btn-block" onclick="cancelMyAppointment({{ appointment.id }})">
+                        <i class="fas fa-times"></i> Cancel Appointment
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="table-responsive d-none d-md-block" style="margin-top: 20px;">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in upcoming %}
+                    <tr>
+                        <td><strong>{{ appointment.appointment_date }}</strong></td>
+                        <td>{{ appointment.time_slot }}</td>
+                        <td><span class="badge badge-pending">Pending</span></td>
+                        <td>{{ appointment.notes or '-' }}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="cancelMyAppointment({{ appointment.id }})">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+            {% else %}
+        <div class="empty-state" style="padding: 40px 20px;">
+            <div class="empty-state-icon"><i class="fas fa-calendar-plus"></i></div>
+            <h3 class="empty-state-title">No Upcoming Appointments</h3>
+            <p class="empty-state-text">You don't have any upcoming appointments scheduled.</p>
+            <a href="/patient/book-appointment" class="btn btn-primary" style="margin-top: 12px;">
+                <i class="fas fa-calendar-plus"></i> Book Now
+            </a>
+        </div>
+            {% endif %}
+        {% else %}
+        <div class="empty-state" style="padding: 40px 20px;">
+            <div class="empty-state-icon"><i class="fas fa-calendar-plus"></i></div>
+            <h3 class="empty-state-title">No Upcoming Appointments</h3>
+            <p class="empty-state-text">You don't have any upcoming appointments scheduled.</p>
+            <a href="/patient/book-appointment" class="btn btn-primary" style="margin-top: 12px;">
+                <i class="fas fa-calendar-plus"></i> Book Now
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Past Tab -->
+    <div class="tab-panel" id="tab-past">
+        {% if appointments and appointments|length > 0 %}
+            {% set past_list = [] %}
+            {% for appointment in appointments %}
+                {% if appointment.status == 'completed' %}
+                    {% set _ = past_list.append(appointment) %}
+                {% endif %}
+            {% endfor %}
+            {% if past_list|length > 0 %}
+        <div class="mobile-table-cards">
+            {% for appointment in past_list %}
+            <div class="mobile-card">
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Date</span>
+                    <span class="mobile-card-value">{{ appointment.appointment_date }}</span>
+                </div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Time</span>
+                    <span class="mobile-card-value">{{ appointment.time_slot }}</span>
+                </div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Status</span>
+                    <span class="mobile-card-value">
+                        <span class="badge badge-completed"><i class="fas fa-check"></i> Completed</span>
+                    </span>
+                </div>
+                {% if appointment.amount %}
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Amount</span>
+                    <span class="mobile-card-value" style="font-weight: 600;">
+                        {{ appointment.company.currency if appointment.company else 'INR' }} {{ "%.2f"|format(appointment.amount) }}
+                    </span>
+                </div>
+                {% endif %}
+                {% if appointment.payment_status %}
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Payment</span>
+                    <span class="mobile-card-value">
+                        {% if appointment.payment_status == 'completed' %}
+                            <span class="badge badge-completed"><i class="fas fa-check"></i> {{ appointment.payment_method|title }} Paid</span>
+                        {% else %}
+                            <span class="badge badge-pending">Pending</span>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="table-responsive d-none d-md-block" style="margin-top: 20px;">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in past_list %}
+                    <tr>
+                        <td>{{ appointment.appointment_date }}</td>
+                        <td>{{ appointment.time_slot }}</td>
+                        <td>
+                            <span class="badge badge-completed">Completed</span>
+                        </td>
+                        <td>
+                            {% if appointment.amount %}
+                            <span style="font-weight: 600;">{{ appointment.company.currency if appointment.company else 'INR' }} {{ "%.2f"|format(appointment.amount) }}</span>
+                            {% else %}
+                            <span style="color: var(--text-muted);">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if appointment.payment_status == 'completed' %}
+                                <span class="badge badge-completed">{{ appointment.payment_method|title }} Paid</span>
+                            {% elif appointment.payment_status == 'pending' %}
+                                <span class="badge badge-pending">Pending</span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+            {% else %}
+        <div class="empty-state" style="padding: 40px 20px;">
+            <div class="empty-state-icon"><i class="fas fa-clipboard-list"></i></div>
+            <h3 class="empty-state-title">No Past Appointments</h3>
+            <p class="empty-state-text">Your completed appointments will appear here.</p>
+        </div>
+            {% endif %}
+        {% else %}
+        <div class="empty-state" style="padding: 40px 20px;">
+            <div class="empty-state-icon"><i class="fas fa-clipboard-list"></i></div>
+            <h3 class="empty-state-title">No Past Appointments</h3>
+            <p class="empty-state-text">Your completed appointments will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cancelled Tab -->
+    <div class="tab-panel" id="tab-cancelled">
+        {% if appointments and appointments|length > 0 %}
+            {% set cancelled_list = [] %}
+            {% for appointment in appointments %}
+                {% if appointment.status == 'cancelled' %}
+                    {% set _ = cancelled_list.append(appointment) %}
+                {% endif %}
+            {% endfor %}
+            {% if cancelled_list|length > 0 %}
+        <div class="mobile-table-cards">
+            {% for appointment in cancelled_list %}
+            <div class="mobile-card">
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Date</span>
+                    <span class="mobile-card-value">{{ appointment.appointment_date }}</span>
+                </div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Time</span>
+                    <span class="mobile-card-value">{{ appointment.time_slot }}</span>
+                </div>
+                <div class="mobile-card-row">
+                    <span class="mobile-card-label">Status</span>
+                    <span class="mobile-card-value">
+                        <span class="badge badge-cancelled"><i class="fas fa-times"></i> Cancelled</span>
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="table-responsive d-none d-md-block" style="margin-top: 20px;">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in cancelled_list %}
+                    <tr>
+                        <td>{{ appointment.appointment_date }}</td>
+                        <td>{{ appointment.time_slot }}</td>
+                        <td><span class="badge badge-cancelled">Cancelled</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+            {% else %}
+        <div class="empty-state" style="padding: 40px 20px;">
+            <div class="empty-state-icon"><i class="fas fa-check-circle"></i></div>
+            <h3 class="empty-state-title">No Cancelled Appointments</h3>
+            <p class="empty-state-text">You haven't cancelled any appointments.</p>
+        </div>
+            {% endif %}
+        {% else %}
+        <div class="empty-state" style="padding: 40px 20px;">
+            <div class="empty-state-icon"><i class="fas fa-check-circle"></i></div>
+            <h3 class="empty-state-title">No Cancelled Appointments</h3>
+            <p class="empty-state-text">You haven't cancelled any appointments.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 24px;">
+    <a href="/patient/book-appointment" class="btn btn-primary btn-lg">
+        <i class="fas fa-calendar-plus"></i> Book New Appointment
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+
+        // Update buttons
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update panels
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+    });
+});
+
+async function cancelMyAppointment(appointmentId) {
+    const confirmed = await confirmAction('Are you sure you want to cancel this appointment?');
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`/patient/appointment/${appointmentId}/cancel`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('Appointment cancelled successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to cancel appointment', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    }
+}
+</script>
+{% endblock %}

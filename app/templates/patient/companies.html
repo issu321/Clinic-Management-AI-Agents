@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Find a Clinic - {{ developer.software_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="text-align: center; margin-bottom: 32px;">
+    <h1 class="page-title" style="font-size: 2rem;">
+        <i class="fas fa-search-location" style="color: #818cf8; margin-right: 12px;"></i>Find a Clinic
+    </h1>
+    <p class="page-subtitle" style="font-size: 1rem; color: rgba(255,255,255,0.6);">Discover and connect with healthcare providers near you</p>
+</div>
+
+<!-- Search Bar -->
+<div class="glass-card-static" style="margin-bottom: 32px; max-width: 600px; margin-left: auto; margin-right: auto;">
+    <div class="search-input-wrapper">
+        <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.4);"></i>
+        <input type="text" id="companySearch" placeholder="Search by clinic name, doctor, country, or city..." 
+               style="width: 100%; padding: 14px 16px 14px 44px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; color: white; font-size: 1rem;">
+    </div>
+</div>
+
+<!-- Companies Grid -->
+<div id="companiesGrid" class="company-grid">
+    {% if companies and companies|length > 0 %}
+        {% for company in companies %}
+        <div class="company-card" 
+             data-name="{{ (company.name or '')|lower }}" 
+             data-country="{{ (company.country or '')|lower }}" 
+             data-city="{{ (company.city or '')|lower }}"
+             data-doctor="{{ (company.admin.username or '')|lower if company.admin else '' }}"
+             style="animation-delay: {{ loop.index0 * 0.08 }}s;">
+
+            <!-- Logo: img with onerror fallback to default logo -->
+            <div class="company-logo-wrap" style="position: relative; width: 64px; height: 64px; border-radius: 16px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;">
+                <img src="{{ url_for('static', filename=company.logo or 'uploads/default_logo.jpg') }}" 
+                     alt="{{ company.name }}" 
+                     class="company-logo-img"
+                     onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='flex';"
+                     style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                <div class="logo-fallback" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: 700; font-size: 1.4rem; color: rgba(255,255,255,0.7); z-index: 1;">
+                    {{ (company.name or 'C')[0] }}
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="company-content">
+                <div class="company-name" title="{{ company.name }}">{{ company.name }}</div>
+
+                {% if company.admin and company.admin.username %}
+                <div class="company-doctor">
+                    <i class="fas fa-user-md"></i> Dr. {{ company.admin.username }}
+                </div>
+                {% endif %}
+
+                <div class="company-meta">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ company.city or 'Unknown' }}{% if company.country %}, {{ company.country }}{% endif %}</span>
+                </div>
+
+                <div class="company-contact">
+                    {% if company.phone %}
+                    <a href="tel:{{ company.phone }}">
+                        <i class="fas fa-phone"></i> {{ company.phone }}
+                    </a>
+                    {% endif %}
+                    {% if company.email %}
+                    <span>
+                        <i class="fas fa-envelope"></i> {{ company.email }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="company-card-actions">
+                    {% if company.phone %}
+                    <a href="tel:{{ company.phone }}" class="btn btn-call">
+                        <i class="fas fa-phone"></i> Call
+                    </a>
+                    <a href="https://wa.me/{{ company.phone }}" target="_blank" rel="noopener" class="btn btn-whatsapp">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('patient.company_detail', id=company.id) }}" class="btn btn-info">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                    <a href="{{ url_for('auth.register_page', role='patient') }}?company_id={{ company.id }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Select & Register
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-clinic-medical"></i></div>
+        <h3 class="empty-state-title">No Clinics Available</h3>
+        <p class="empty-state-text">There are no clinics registered yet. Please check back later.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+document.getElementById('companySearch').addEventListener('input', debounce(function(e) {
+    const query = e.target.value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.company-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        const name = card.dataset.name || '';
+        const country = card.dataset.country || '';
+        const city = card.dataset.city || '';
+        const doctor = card.dataset.doctor || '';
+
+        if (!query || name.includes(query) || country.includes(query) || city.includes(query) || doctor.includes(query)) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    const existingEmpty = document.getElementById('searchEmptyState');
+    if (existingEmpty) existingEmpty.remove();
+
+    if (visibleCount === 0 && query) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.id = 'searchEmptyState';
+        emptyDiv.className = 'empty-state';
+        emptyDiv.style.marginTop = '20px';
+        emptyDiv.innerHTML = `
+            <div class="empty-state-icon"><i class="fas fa-search"></i></div>
+            <h3 class="empty-state-title">No Results Found</h3>
+            <p class="empty-state-text">No clinics match "${query}". Try a different search term.</p>
+        `;
+        document.getElementById('companiesGrid').appendChild(emptyDiv);
+    }
+}, 300));
+</script>
+{% endblock %}

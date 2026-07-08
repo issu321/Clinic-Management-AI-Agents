@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if role == 'super_admin' %}Register Super Admin
+{% elif role == 'admin' %}Register Clinic & Doctor
+{% else %}Register as Patient{% endif %} - {{ developer.software_name }}
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card fade-in" style="max-width: {% if role == 'admin' %}680px{% else %}480px{% endif %}">
+        <div class="auth-header">
+            <div class="auth-header-icon">
+                {% if role == 'super_admin' %}
+                    <i class="fas fa-shield-alt"></i>
+                {% elif role == 'admin' %}
+                    <i class="fas fa-user-md"></i>
+                {% else %}
+                    <i class="fas fa-user"></i>
+                {% endif %}
+            </div>
+            <h1 class="auth-title">
+                {% if role == 'super_admin' %}Register Super Admin
+                {% elif role == 'admin' %}Register Your Clinic
+                {% else %}Register as Patient{% endif %}
+            </h1>
+            <p class="auth-subtitle">
+                {% if role == 'super_admin' %}System administrator access
+                {% elif role == 'admin' %}Create your clinic and doctor profile
+                {% else %}Join a clinic as a patient{% endif %}
+            </p>
+        </div>
+
+        <!-- ==================== SUPER ADMIN REGISTRATION ==================== -->
+        {% if role == 'super_admin' %}
+        <form method="POST" action="{{ url_for('auth.register_super_admin') }}" enctype="multipart/form-data" id="registerForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="username">Username <span class="required">*</span></label>
+                <input type="text" id="username" name="username" placeholder="Choose a username" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password <span class="required">*</span></label>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" placeholder="Create a strong password" required autocomplete="new-password">
+                    <button type="button" class="password-toggle" data-target="#password" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="phone">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="phone" name="phone" placeholder="Enter phone number with country code" required autocomplete="tel">
+                <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">
+                    <i class="fas fa-info-circle"></i> Used for calls and WhatsApp
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="profile_picture">Profile Picture</label>
+                <input type="file" id="profile_picture" name="profile_picture" accept="image/*">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                <i class="fas fa-shield-alt"></i> Register as Super Admin
+            </button>
+        </form>
+
+        <!-- ==================== ADMIN / DOCTOR + CLINIC REGISTRATION ==================== -->
+        {% elif role == 'admin' %}
+        <form method="POST" action="{{ url_for('auth.register_admin') }}" enctype="multipart/form-data" id="registerForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Doctor Details Section -->
+            <div class="glass-card-static" style="margin-bottom: 20px; padding: 20px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user-md" style="color: #818cf8;"></i> Doctor Details
+                </h3>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username <span class="required">*</span></label>
+                        <input type="text" id="username" name="username" placeholder="Choose a username" required autocomplete="username">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password <span class="required">*</span></label>
+                        <div style="position: relative;">
+                            <input type="password" id="password" name="password" placeholder="Create password" required autocomplete="new-password">
+                            <button type="button" class="password-toggle" data-target="#password" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" placeholder="Doctor phone number" required autocomplete="tel">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="profile_picture">Profile Picture</label>
+                    <input type="file" id="profile_picture" name="profile_picture" accept="image/*">
+                </div>
+            </div>
+
+            <!-- Clinic Details Section -->
+            <div class="glass-card-static" style="padding: 20px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-clinic-medical" style="color: #34d399;"></i> Clinic Details
+                </h3>
+
+                <div class="form-group">
+                    <label class="form-label" for="company_name">Clinic Name <span class="required">*</span></label>
+                    <input type="text" id="company_name" name="company_name" placeholder="Your clinic name" required>
+                </div>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="country">Country <span class="required">*</span></label>
+                        <select id="country" name="country" required>
+                            <option value="">Loading countries...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="city">City <span class="required">*</span></label>
+                        <input type="text" id="city" name="city" placeholder="City name" required>
+                    </div>
+                </div>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="currency">Currency <span class="required">*</span></label>
+                        <select id="currency" name="currency" required>
+                            <option value="">Loading currencies...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="timezone">Timezone <span class="required">*</span></label>
+                        <select id="timezone" name="timezone" required>
+                            <option value="">Loading timezones...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="address">Address <span class="required">*</span></label>
+                    <textarea id="address" name="address" placeholder="Full clinic address" rows="3" required></textarea>
+                </div>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="company_phone">Clinic Phone <span class="required">*</span></label>
+                        <input type="tel" id="company_phone" name="company_phone" placeholder="Clinic phone number" required autocomplete="tel">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="company_email">Clinic Email <span class="required">*</span></label>
+                        <input type="email" id="company_email" name="company_email" placeholder="clinic@email.com" required autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="logo">Clinic Logo</label>
+                    <input type="file" id="logo" name="logo" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="description">Description (Optional)</label>
+                    <textarea id="description" name="description" placeholder="Brief description of your clinic and services" rows="3"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 20px;">
+                <i class="fas fa-clinic-medical"></i> Register Clinic
+            </button>
+        </form>
+
+        <!-- ==================== PATIENT REGISTRATION ==================== -->
+        {% else %}
+
+        <!-- Step 1: Company Selection -->
+        <div id="patientStep1">
+            <div class="company-selection">
+                <div class="filter-bar">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="companySearch" placeholder="Search clinics by name, country, or city...">
+                    </div>
+                </div>
+
+                <div id="companiesList" class="company-grid" style="margin-top: 16px;">
+                    <!-- Loading skeleton -->
+                    <div class="company-card">
+                        <div class="skeleton" style="height: 60px; width: 60px; border-radius: 12px; margin-bottom: 12px;"></div>
+                        <div class="skeleton" style="height: 20px; width: 70%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 14px; width: 50%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 14px; width: 40%;"></div>
+                    </div>
+                    <div class="company-card">
+                        <div class="skeleton" style="height: 60px; width: 60px; border-radius: 12px; margin-bottom: 12px;"></div>
+                        <div class="skeleton" style="height: 20px; width: 70%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 14px; width: 50%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 14px; width: 40%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Registration Form -->
+        <div id="patientStep2" style="display: none;">
+            <div style="margin-bottom: 20px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="showStep1()">
+                    <i class="fas fa-arrow-left"></i> Back to Clinics
+                </button>
+            </div>
+
+            <div class="glass-card-static" style="margin-bottom: 20px; padding: 16px;">
+                <div id="selectedCompanyInfo" style="display: flex; align-items: center; gap: 12px;">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.register_patient') }}" enctype="multipart/form-data" id="patientRegisterForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="patientCompanyId" name="company_id" value="">
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username <span class="required">*</span></label>
+                        <input type="text" id="username" name="username" placeholder="Choose a username" required autocomplete="username">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password <span class="required">*</span></label>
+                        <div style="position: relative;">
+                            <input type="password" id="password" name="password" placeholder="Create password" required autocomplete="new-password">
+                            <button type="button" class="password-toggle" data-target="#password" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" placeholder="Your phone number" required autocomplete="tel">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="full_name">Full Name <span class="required">*</span></label>
+                    <input type="text" id="full_name" name="full_name" placeholder="Your full name" required autocomplete="name">
+                </div>
+
+                <div class="two-column" style="gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="age">Age (Optional)</label>
+                        <input type="number" id="age" name="age" placeholder="Your age" min="1" max="150">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="gender">Gender (Optional)</label>
+                        <select id="gender" name="gender">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="address">Address (Optional)</label>
+                    <textarea id="address" name="address" placeholder="Your address" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="emergency_contact">Emergency Contact (Optional)</label>
+                    <input type="tel" id="emergency_contact" name="emergency_contact" placeholder="Emergency phone number" autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="medical_history">Medical History (Optional)</label>
+                    <textarea id="medical_history" name="medical_history" placeholder="Any allergies, previous surgeries, or medical conditions..." rows="3"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    <i class="fas fa-user-check"></i> Register as Patient
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="auth-footer">
+            <p>Already have an account?</p>
+            <a href="{{ url_for('auth.login_page') }}" target="_self" style="margin-top: 8px; display: inline-block;">
+                <i class="fas fa-sign-in-alt"></i> Sign In Here
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Static base URL for all images rendered via JavaScript
+const staticBase = "{{ url_for('static', filename='') }}";
+
+{% if role == 'admin' %}
+// Load dropdowns for admin registration
+document.addEventListener('DOMContentLoaded', () => {
+    loadCountries();
+    loadCurrencies();
+    loadTimezones();
+});
+{% elif role == 'patient' %}
+// Load companies for patient registration
+let companiesData = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCompanies();
+});
+
+async function loadCompanies() {
+    const container = document.getElementById('companiesList');
+
+    try {
+        // Use hardcoded URL to avoid endpoint name mismatch
+        const response = await fetch("/patient/companies", {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.data) {
+            companiesData = data.data;
+            renderCompanies(companiesData);
+        } else {
+            container.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state-icon"><i class="fas fa-clinic-medical"></i></div>
+                    <h3 class="empty-state-title">No Clinics Available</h3>
+                    <p class="empty-state-text">No clinics are registered yet. Please check back later.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        showToast('Failed to load clinics', 'error');
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
+                <h3 class="empty-state-title">Error Loading Clinics</h3>
+                <p class="empty-state-text">Please refresh the page and try again.</p>
+            </div>
+        `;
+    }
+}
+
+function renderCompanies(companies) {
+    const container = document.getElementById('companiesList');
+    container.innerHTML = '';
+
+    if (companies.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <div class="empty-state-icon"><i class="fas fa-search"></i></div>
+                <h3 class="empty-state-title">No Results Found</h3>
+                <p class="empty-state-text">Try a different search term.</p>
+            </div>
+        `;
+        return;
+    }
+
+    companies.forEach(company => {
+        const card = document.createElement('div');
+        card.className = 'company-card';
+        card.dataset.name = (company.name || '').toLowerCase();
+        card.dataset.country = (company.country || '').toLowerCase();
+        card.dataset.city = (company.city || '').toLowerCase();
+
+        // FIX: Prepend staticBase to logo path so it resolves to /static/uploads/logos/xxx.png
+        const logoPath = company.logo ? staticBase + company.logo : '';
+        const logo = logoPath
+            ? `<img src="${logoPath}" alt="${company.name}" class="company-logo">`
+            : `<div class="company-logo-placeholder"><i class="fas fa-clinic-medical"></i></div>`;
+
+        card.innerHTML = `
+            <div class="company-card-header">
+                ${logo}
+                <div class="company-info">
+                    <div class="company-name">${company.name}</div>
+                    <div class="company-meta">
+                        <span><i class="fas fa-map-marker-alt"></i> ${company.city}, ${company.country}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="company-card-body">
+                ${company.phone ? `
+                <div class="company-phone-row">
+                    <i class="fas fa-phone"></i>
+                    <span>${company.phone}</span>
+                </div>
+                ` : ''}
+                ${company.email ? `
+                <div class="company-phone-row">
+                    <i class="fas fa-envelope"></i>
+                    <span>${company.email}</span>
+                </div>
+                ` : ''}
+            </div>
+            <div class="company-card-actions">
+                <a href="tel:${company.phone}" class="btn btn-call btn-sm" ${!company.phone ? 'style="display:none;"' : ''}>
+                    <i class="fas fa-phone"></i> Call
+                </a>
+                <a href="https://wa.me/${company.phone}" rel="noopener" class="btn btn-whatsapp btn-sm" ${!company.phone ? 'style="display:none;"' : ''}>
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                <button type="button" class="btn btn-primary btn-sm" onclick="selectCompany(${company.id}, '${company.name.replace(/'/g, "\\'")}', '${company.logo || ''}', '${(company.city || '').replace(/'/g, "\\'")}', '${(company.country || '').replace(/'/g, "\\'")}')">
+                    <i class="fas fa-check"></i> Select & Register
+                </button>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function selectCompany(id, name, logo, city, country) {
+    document.getElementById('patientCompanyId').value = id;
+
+    const infoDiv = document.getElementById('selectedCompanyInfo');
+    // FIX: Prepend staticBase to logo path
+    const logoPath = logo ? staticBase + logo : '';
+    const logoHtml = logoPath
+        ? `<img src="${logoPath}" alt="${name}" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 2px solid var(--glass-border);">`
+        : `<div style="width: 48px; height: 48px; border-radius: 10px; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: white;"><i class="fas fa-clinic-medical"></i></div>`;
+
+    infoDiv.innerHTML = `
+        ${logoHtml}
+        <div>
+            <div style="font-weight: 700; font-size: 1rem;">${name}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">${city}, ${country}</div>
+        </div>
+    `;
+
+    document.getElementById('patientStep1').style.display = 'none';
+    document.getElementById('patientStep2').style.display = 'block';
+    document.getElementById('patientStep2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showStep1() {
+    document.getElementById('patientStep2').style.display = 'none';
+    document.getElementById('patientStep1').style.display = 'block';
+}
+
+// Search functionality
+document.getElementById('companySearch').addEventListener('input', debounce(function(e) {
+    const query = e.target.value.toLowerCase().trim();
+
+    if (!query) {
+        renderCompanies(companiesData);
+        return;
+    }
+
+    const filtered = companiesData.filter(c => 
+        (c.name && c.name.toLowerCase().includes(query)) ||
+        (c.country && c.country.toLowerCase().includes(query)) ||
+        (c.city && c.city.toLowerCase().includes(query))
+    );
+
+    renderCompanies(filtered);
+}, 300));
+{% endif %}
+
+// Form validation for all roles
+document.getElementById('registerForm')?.addEventListener('submit', function(e) {
+    if (!validateForm(this)) {
+        e.preventDefault();
+        showToast('Please fill in all required fields', 'warning');
+    }
+});
+
+document.getElementById('patientRegisterForm')?.addEventListener('submit', function(e) {
+    if (!validateForm(this)) {
+        e.preventDefault();
+        showToast('Please fill in all required fields', 'warning');
+    }
+});
+</script>
+{% endblock %}

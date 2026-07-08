@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}{{ developer.software_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('main.index') }}" class="nav-brand">
+                <i class="fas fa-clinic-medical"></i>
+                <span class="brand-text">{{ developer.software_name }}</span>
+            </a>
+
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+            </button>
+
+            <div class="nav-menu" id="navMenu">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.role == 'super_admin' %}
+                        <a href="{{ url_for('super_admin.dashboard') }}" target="_self" class="nav-link"><i class="fas fa-chart-line"></i> Dashboard</a>
+                        <a href="{{ url_for('super_admin.get_all_companies') }}" target="_self" class="nav-link"><i class="fas fa-building"></i> Companies</a>
+                        <a href="{{ url_for('super_admin.get_all_users') }}" target="_self" class="nav-link"><i class="fas fa-users"></i> Users</a>
+                    {% elif current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin.dashboard') }}" target="_self" class="nav-link"><i class="fas fa-chart-line"></i> Dashboard</a>
+                        <a href="{{ url_for('admin.get_appointments') }}" target="_self" class="nav-link"><i class="fas fa-calendar-check"></i> Appointments</a>
+                        <a href="{{ url_for('admin.get_patients') }}" target="_self" class="nav-link"><i class="fas fa-user-injured"></i> Patients</a>
+                        <a href="{{ url_for('admin.get_records') }}" target="_self" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> Records</a>
+                    {% elif current_user.role == 'patient' %}
+                        <a href="{{ url_for('patient.dashboard') }}" target="_self" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+                        <a href="{{ url_for('patient.book_appointment') }}" target="_self" class="nav-link"><i class="fas fa-calendar-plus"></i> Book Appointment</a>
+                        <a href="{{ url_for('patient.my_appointments') }}" target="_self" class="nav-link"><i class="fas fa-list"></i> My Appointments</a>
+                    {% endif %}
+                    <a href="{{ url_for('auth.logout') }}" target="_self" class="nav-link nav-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login_page') }}" target="_self" class="nav-link"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    <a href="{{ url_for('auth.register_page', role='admin') }}" target="_self" class="nav-link"><i class="fas fa-user-md"></i> Register as Doctor</a>
+                    <a href="{{ url_for('auth.register_page', role='patient') }}" target="_self" class="nav-link"><i class="fas fa-user"></i> Register as Patient</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div style="max-width: 1200px; margin: 20px auto; padding: 0 20px;">
+            {% for category, message in messages %}
+            <div style="padding: 14px 22px; margin-bottom: 12px; border-radius: 14px; font-weight: 500; font-size: 0.95rem; backdrop-filter: blur(10px); {% if category == 'error' %}background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25);{% else %}background: rgba(52,211,153,0.12); color: #34d399; border: 1px solid rgba(52,211,153,0.25);{% endif %}">
+                <i class="fas {% if category == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}" style="margin-right: 8px;"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Developer Credit Footer -->
+    <footer class="glass-footer">
+        <div class="footer-content">
+            <p class="footer-dev">Developed by <strong>{{ developer.name }}</strong></p>
+            <div class="footer-links">
+                <a href="https://github.com/{{ developer.github }}" target="_blank" rel="noopener">
+                    <i class="fab fa-github"></i> {{ developer.github }}
+                </a>
+                <span class="footer-sep">|</span>
+                <a href="{{ developer.portfolio }}" target="_blank" rel="noopener">
+                    <i class="fas fa-globe"></i> Portfolio
+                </a>
+                <span class="footer-sep">|</span>
+                <a href="mailto:{{ developer.email }}">
+                    <i class="fas fa-envelope"></i> {{ developer.email }}
+                </a>
+            </div>
+            <p class="footer-tagline">{{ developer.software_name }} - {{ developer.tagline }}</p>
+            <p class="footer-copy">Copyright 2026 ClinicPro. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+        </div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
